@@ -221,7 +221,10 @@
     "from": "now-1h",
     "to": "now"
   },
-  "timepicker": {},
+  "refresh": "5s",
+  "timepicker": {
+    "refresh_intervals": ["5s", "10s", "30s", "1m", "5m"]
+  },
   "timezone": "browser",
   "title": "Regional Service Health",
   "uid": "regional-service-health",
