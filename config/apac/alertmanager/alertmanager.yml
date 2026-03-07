@@ -3,7 +3,7 @@ global:
 
 route:
   receiver: default
-  group_by: ['region', 'service', 'alert_name', 'severity']
+  group_by: ['region', 'service', 'alert_name', 'severity', 'alert_id']
   group_wait: 1s
   group_interval: 1s
   repeat_interval: 1m

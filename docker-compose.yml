@@ -154,7 +154,7 @@ services:
       - "-storageDataPath=/victoria-metrics-data"
       - "-retentionPeriod=30d"
       - "-httpListenAddr=:8428"
-      - "-search.latencyOffset=2s"
+      - "-search.latencyOffset=0s"
     volumes:
       - apac_vm_data:/victoria-metrics-data
     networks:
@@ -192,7 +192,7 @@ services:
       - "-notifier.url=http://apac-alertmanager:9093"
       - "-rule=/etc/vmalert/*.yaml"
       - "-evaluationInterval=1s"
-      - "-rule.evalDelay=2s"
+      - "-rule.evalDelay=0s"
       - "-httpListenAddr=:8880"
     volumes:
       - ./config/apac/vmalert:/etc/vmalert:ro
@@ -385,7 +385,7 @@ services:
       - "-storageDataPath=/victoria-metrics-data"
       - "-retentionPeriod=30d"
       - "-httpListenAddr=:8428"
-      - "-search.latencyOffset=2s"
+      - "-search.latencyOffset=0s"
     volumes:
       - eu_vm_data:/victoria-metrics-data
     networks:
@@ -423,7 +423,7 @@ services:
       - "-notifier.url=http://eu-alertmanager:9093"
       - "-rule=/etc/vmalert/*.yaml"
       - "-evaluationInterval=1s"
-      - "-rule.evalDelay=2s"
+      - "-rule.evalDelay=0s"
       - "-httpListenAddr=:8880"
     volumes:
       - ./config/eu/vmalert:/etc/vmalert:ro
@@ -616,7 +616,7 @@ services:
       - "-storageDataPath=/victoria-metrics-data"
       - "-retentionPeriod=30d"
       - "-httpListenAddr=:8428"
-      - "-search.latencyOffset=2s"
+      - "-search.latencyOffset=0s"
     volumes:
       - us_vm_data:/victoria-metrics-data
     networks:
@@ -654,7 +654,7 @@ services:
       - "-notifier.url=http://us-alertmanager:9093"
       - "-rule=/etc/vmalert/*.yaml"
       - "-evaluationInterval=1s"
-      - "-rule.evalDelay=2s"
+      - "-rule.evalDelay=0s"
       - "-httpListenAddr=:8880"
     volumes:
       - ./config/us/vmalert:/etc/vmalert:ro
