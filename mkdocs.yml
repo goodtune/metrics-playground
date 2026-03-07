@@ -1,0 +1,31 @@
+site_name: Metrics Playground
+site_description: Event-based alerting lab with OpenTelemetry, VictoriaMetrics, and Grafana
+repo_url: https://github.com/goodtune/metrics-playground
+
+theme:
+  name: readthedocs
+  highlightjs: true
+  hljs_languages:
+    - yaml
+    - python
+    - bash
+
+nav:
+  - Home: index.md
+  - Architecture: architecture.md
+  - Getting Started: getting-started.md
+  - Components:
+      - Workload Simulator: components/workload.md
+      - OpenTelemetry Collectors: components/otel-collectors.md
+      - VictoriaMetrics Stack: components/victoriametrics.md
+      - Alertmanager: components/alertmanager.md
+      - Grafana: components/grafana.md
+  - Failure Modes: failure-modes.md
+  - Configuration Reference: configuration.md
+
+markdown_extensions:
+  - admonition
+  - codehilite
+  - toc:
+      permalink: true
+  - tables
