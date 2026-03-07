@@ -69,7 +69,8 @@ services:
 
   # --- Local OTEL Collectors ---
   apac-otel-1:
-    image: otel/opentelemetry-collector-contrib:0.116.0
+    image: otel/opentelemetry-collector-contrib:0.120.0
+    user: "0:0"
     command: ["--config=/etc/otelcol/config.yaml"]
     volumes:
       - ./config/apac/otel-1:/etc/otelcol:ro
@@ -81,13 +82,14 @@ services:
       - lab-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:13133/"]
+      test: ["CMD", "/otelcol-contrib", "components"]
       interval: 10s
       timeout: 5s
       retries: 3
 
   apac-otel-2:
-    image: otel/opentelemetry-collector-contrib:0.116.0
+    image: otel/opentelemetry-collector-contrib:0.120.0
+    user: "0:0"
     command: ["--config=/etc/otelcol/config.yaml"]
     volumes:
       - ./config/apac/otel-2:/etc/otelcol:ro
@@ -99,13 +101,14 @@ services:
       - lab-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:13133/"]
+      test: ["CMD", "/otelcol-contrib", "components"]
       interval: 10s
       timeout: 5s
       retries: 3
 
   apac-otel-3:
-    image: otel/opentelemetry-collector-contrib:0.116.0
+    image: otel/opentelemetry-collector-contrib:0.120.0
+    user: "0:0"
     command: ["--config=/etc/otelcol/config.yaml"]
     volumes:
       - ./config/apac/otel-3:/etc/otelcol:ro
@@ -117,7 +120,7 @@ services:
       - lab-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:13133/"]
+      test: ["CMD", "/otelcol-contrib", "components"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -293,7 +296,8 @@ services:
 
   # --- Local OTEL Collectors ---
   eu-otel-1:
-    image: otel/opentelemetry-collector-contrib:0.116.0
+    image: otel/opentelemetry-collector-contrib:0.120.0
+    user: "0:0"
     command: ["--config=/etc/otelcol/config.yaml"]
     volumes:
       - ./config/eu/otel-1:/etc/otelcol:ro
@@ -305,13 +309,14 @@ services:
       - lab-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:13133/"]
+      test: ["CMD", "/otelcol-contrib", "components"]
       interval: 10s
       timeout: 5s
       retries: 3
 
   eu-otel-2:
-    image: otel/opentelemetry-collector-contrib:0.116.0
+    image: otel/opentelemetry-collector-contrib:0.120.0
+    user: "0:0"
     command: ["--config=/etc/otelcol/config.yaml"]
     volumes:
       - ./config/eu/otel-2:/etc/otelcol:ro
@@ -323,13 +328,14 @@ services:
       - lab-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:13133/"]
+      test: ["CMD", "/otelcol-contrib", "components"]
       interval: 10s
       timeout: 5s
       retries: 3
 
   eu-otel-3:
-    image: otel/opentelemetry-collector-contrib:0.116.0
+    image: otel/opentelemetry-collector-contrib:0.120.0
+    user: "0:0"
     command: ["--config=/etc/otelcol/config.yaml"]
     volumes:
       - ./config/eu/otel-3:/etc/otelcol:ro
@@ -341,7 +347,7 @@ services:
       - lab-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:13133/"]
+      test: ["CMD", "/otelcol-contrib", "components"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -517,7 +523,8 @@ services:
 
   # --- Local OTEL Collectors ---
   us-otel-1:
-    image: otel/opentelemetry-collector-contrib:0.116.0
+    image: otel/opentelemetry-collector-contrib:0.120.0
+    user: "0:0"
     command: ["--config=/etc/otelcol/config.yaml"]
     volumes:
       - ./config/us/otel-1:/etc/otelcol:ro
@@ -529,13 +536,14 @@ services:
       - lab-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:13133/"]
+      test: ["CMD", "/otelcol-contrib", "components"]
       interval: 10s
       timeout: 5s
       retries: 3
 
   us-otel-2:
-    image: otel/opentelemetry-collector-contrib:0.116.0
+    image: otel/opentelemetry-collector-contrib:0.120.0
+    user: "0:0"
     command: ["--config=/etc/otelcol/config.yaml"]
     volumes:
       - ./config/us/otel-2:/etc/otelcol:ro
@@ -547,13 +555,14 @@ services:
       - lab-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:13133/"]
+      test: ["CMD", "/otelcol-contrib", "components"]
       interval: 10s
       timeout: 5s
       retries: 3
 
   us-otel-3:
-    image: otel/opentelemetry-collector-contrib:0.116.0
+    image: otel/opentelemetry-collector-contrib:0.120.0
+    user: "0:0"
     command: ["--config=/etc/otelcol/config.yaml"]
     volumes:
       - ./config/us/otel-3:/etc/otelcol:ro
@@ -565,7 +574,7 @@ services:
       - lab-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:13133/"]
+      test: ["CMD", "/otelcol-contrib", "components"]
       interval: 10s
       timeout: 5s
       retries: 3
