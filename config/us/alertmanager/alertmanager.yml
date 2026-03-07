@@ -2,18 +2,29 @@ global:
   resolve_timeout: 1m
 
 route:
-  receiver: default
+  receiver: us-app-1
   group_by: ['region', 'service', 'alert_name', 'severity', 'alert_id']
   group_wait: 1s
   group_interval: 1s
   repeat_interval: 1m
+  routes:
+    - receiver: us-app-2
+      matchers:
+        - service="us-app-2"
+    - receiver: us-app-3
+      matchers:
+        - service="us-app-3"
 
 receivers:
-  - name: default
+  - name: us-app-1
     webhook_configs:
       - url: http://us-app-1:8080/webhook
         send_resolved: false
+  - name: us-app-2
+    webhook_configs:
       - url: http://us-app-2:8080/webhook
         send_resolved: false
+  - name: us-app-3
+    webhook_configs:
       - url: http://us-app-3:8080/webhook
         send_resolved: false

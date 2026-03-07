@@ -2,18 +2,29 @@ global:
   resolve_timeout: 1m
 
 route:
-  receiver: default
+  receiver: eu-app-1
   group_by: ['region', 'service', 'alert_name', 'severity', 'alert_id']
   group_wait: 1s
   group_interval: 1s
   repeat_interval: 1m
+  routes:
+    - receiver: eu-app-2
+      matchers:
+        - service="eu-app-2"
+    - receiver: eu-app-3
+      matchers:
+        - service="eu-app-3"
 
 receivers:
-  - name: default
+  - name: eu-app-1
     webhook_configs:
       - url: http://eu-app-1:8080/webhook
         send_resolved: false
+  - name: eu-app-2
+    webhook_configs:
       - url: http://eu-app-2:8080/webhook
         send_resolved: false
+  - name: eu-app-3
+    webhook_configs:
       - url: http://eu-app-3:8080/webhook
         send_resolved: false

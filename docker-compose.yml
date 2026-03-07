@@ -155,6 +155,7 @@ services:
       - "-retentionPeriod=30d"
       - "-httpListenAddr=:8428"
       - "-search.latencyOffset=0s"
+      - "-inmemoryDataFlushInterval=0s"
     volumes:
       - apac_vm_data:/victoria-metrics-data
     networks:
@@ -386,6 +387,7 @@ services:
       - "-retentionPeriod=30d"
       - "-httpListenAddr=:8428"
       - "-search.latencyOffset=0s"
+      - "-inmemoryDataFlushInterval=0s"
     volumes:
       - eu_vm_data:/victoria-metrics-data
     networks:
@@ -617,6 +619,7 @@ services:
       - "-retentionPeriod=30d"
       - "-httpListenAddr=:8428"
       - "-search.latencyOffset=0s"
+      - "-inmemoryDataFlushInterval=0s"
     volumes:
       - us_vm_data:/victoria-metrics-data
     networks:
@@ -701,6 +704,11 @@ services:
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=false
+      - GF_SECURITY_DISABLE_INITIAL_ADMIN_CREATION=false
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
       - GF_DASHBOARDS_MIN_REFRESH_INTERVAL=1s
       - GF_INSTALL_PLUGINS=victoriametrics-logs-datasource
     ports:

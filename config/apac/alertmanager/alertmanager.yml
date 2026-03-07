@@ -2,18 +2,29 @@ global:
   resolve_timeout: 1m
 
 route:
-  receiver: default
+  receiver: apac-app-1
   group_by: ['region', 'service', 'alert_name', 'severity', 'alert_id']
   group_wait: 1s
   group_interval: 1s
   repeat_interval: 1m
+  routes:
+    - receiver: apac-app-2
+      matchers:
+        - service="apac-app-2"
+    - receiver: apac-app-3
+      matchers:
+        - service="apac-app-3"
 
 receivers:
-  - name: default
+  - name: apac-app-1
     webhook_configs:
       - url: http://apac-app-1:8080/webhook
         send_resolved: false
+  - name: apac-app-2
+    webhook_configs:
       - url: http://apac-app-2:8080/webhook
         send_resolved: false
+  - name: apac-app-3
+    webhook_configs:
       - url: http://apac-app-3:8080/webhook
         send_resolved: false

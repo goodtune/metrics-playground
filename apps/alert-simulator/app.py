@@ -3,6 +3,10 @@
 Exposes a simple HTTP API to raise and clear alerts. Each event emits
 both a metric (lab_alert_active gauge) and a log record via OTLP.
 Includes a Datastar-powered UI with SSE-driven live updates.
+
+Pre-registers all (alert_name × severity) metric series at startup so
+VictoriaMetrics can index them before any alerts are raised, avoiding
+the 5-10s new-series indexing delay.
 """
 
 import html as html_mod
@@ -64,10 +68,32 @@ alert_logger.addHandler(otel_handler)
 alert_logger.setLevel(logging.INFO)
 
 # ---------------------------------------------------------------------------
-# Alert state tracking
+# Pre-registered alert series
 # ---------------------------------------------------------------------------
-active_alerts: dict[str, dict] = {}
+ALERT_NAMES = [
+    "HighLatency", "DiskPressure", "MemoryExhausted", "CPUThrottle",
+    "ConnectionPoolFull", "QueueBacklog", "CertExpiring", "ErrorRateSpike",
+    "SlowQueries", "ReplicationLag",
+]
+SEVERITIES = ["critical", "warning", "info"]
+
+
+def _make_alert_id(alert_name: str, severity: str) -> str:
+    """Deterministic alert_id from (service, alert_name, severity)."""
+    return str(uuid.uuid5(uuid.NAMESPACE_DNS, f"{SERVICE_NAME}.{alert_name}.{severity}"))
+
+
+# Gauge values: key=(region, service, component, instance, alert_name, severity, alert_id) -> 0 or 1
+# Pre-populated with ALL (name × severity) at value 0 so VM indexes them at startup.
 alert_gauge_values: dict[tuple, int] = {}
+for _name in ALERT_NAMES:
+    for _sev in SEVERITIES:
+        _aid = _make_alert_id(_name, _sev)
+        _key = (REGION, SERVICE_NAME, COMPONENT, INSTANCE, _name, _sev, _aid)
+        alert_gauge_values[_key] = 0
+
+# Active alerts metadata
+active_alerts: dict[str, dict] = {}
 
 
 def _observe_alerts(_options):
@@ -225,12 +251,20 @@ def _sse_response(*fragments: str) -> Response:
 # ---------------------------------------------------------------------------
 # Alert mutation helpers (shared by Datastar + JSON routes)
 # ---------------------------------------------------------------------------
-def _do_raise(alert_name, severity, reason, message, correlation_id, alert_id=None):
-    """Raise an alert and return the record."""
-    if alert_id is None:
-        alert_id = str(uuid.uuid4())
-
+def _do_raise(alert_name, severity, reason, message, correlation_id):
+    """Raise an alert by toggling its pre-registered gauge from 0 to 1."""
+    alert_id = _make_alert_id(alert_name, severity)
     key = (REGION, SERVICE_NAME, COMPONENT, INSTANCE, alert_name, severity, alert_id)
+
+    if key not in alert_gauge_values:
+        # Unregistered combination — add it (will take longer first time)
+        alert_gauge_values[key] = 0
+
+    if alert_id in active_alerts:
+        # Already active with this name+severity — update event_time for re-raise
+        active_alerts[alert_id]["event_time"] = time.time()
+        return active_alerts[alert_id]
+
     alert_gauge_values[key] = 1
     http_request_counter.add(1, {"method": "POST", "endpoint": "/raise"})
 
@@ -254,17 +288,16 @@ def _do_raise(alert_name, severity, reason, message, correlation_id, alert_id=No
 
 
 def _do_clear(alert_id, reason="manually cleared"):
-    """Clear an alert. Returns the record or None."""
+    """Clear an alert by setting its gauge back to 0."""
     record = active_alerts.pop(alert_id, None)
     if record is None:
         return None
 
     key = (
-        REGION, SERVICE_NAME, COMPONENT,
-        record.get("instance", INSTANCE),
+        REGION, SERVICE_NAME, COMPONENT, INSTANCE,
         record["alert_name"], record["severity"], alert_id,
     )
-    alert_gauge_values[key] = 0
+    alert_gauge_values[key] = 0  # Set to 0, don't remove (keep series alive)
     roundtrip_key = (REGION, record["alert_name"], record["severity"], alert_id)
     roundtrip_values.pop(roundtrip_key, None)
     http_request_counter.add(1, {"method": "POST", "endpoint": "/clear"})
@@ -445,8 +478,9 @@ def raise_alert():
         reason=data.get("reason", ""),
         message=data.get("message", ""),
         correlation_id=data.get("correlation_id", ""),
-        alert_id=data.get("alert_id"),
     )
+    if record is None:
+        return jsonify({"error": "failed to raise alert"}), 500
     return jsonify({"status": "raised", "alert_id": record["alert_id"]}), 201
 
 

@@ -16,16 +16,15 @@ processors:
   memory_limiter:
     check_interval: 1s
     limit_mib: 256
-  batch:
-    timeout: 1s
-    send_batch_size: 1024
+  batch/logs:
+    timeout: 200ms
+    send_batch_size: 256
 
 exporters:
   otlphttp/metrics:
     endpoint: http://apac-victoriametrics:8428/opentelemetry
     sending_queue:
-      enabled: true
-      storage: file_storage
+      enabled: false
     retry_on_failure:
       enabled: true
   otlphttp/logs:
@@ -41,9 +40,9 @@ service:
   pipelines:
     metrics:
       receivers: [otlp]
-      processors: [memory_limiter, batch]
+      processors: [memory_limiter]
       exporters: [otlphttp/metrics]
     logs:
       receivers: [otlp]
-      processors: [memory_limiter, batch]
+      processors: [memory_limiter, batch/logs]
       exporters: [otlphttp/logs]
