@@ -57,7 +57,7 @@ Evaluates alerting rules against VictoriaMetrics on a schedule and sends active 
 
 - Queries `http://<region>-victoriametrics:8428`
 - Notifies `http://<region>-alertmanager:9093`
-- 5-second evaluation interval
+- 1-second evaluation interval
 - Rules mounted from `config/<region>/vmalert/rules.yaml`
 - Persistent volume at `/vmalert-data`
 
@@ -66,7 +66,7 @@ Evaluates alerting rules against VictoriaMetrics on a schedule and sends active 
 ```yaml
 groups:
   - name: lab-alerts
-    interval: 5s
+    interval: 1s
     rules:
       - alert: LabAlertActive
         expr: >-
