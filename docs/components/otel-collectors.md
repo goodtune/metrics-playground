@@ -25,13 +25,13 @@ Workload → [OTLP] → Local Collector → metrics → regional vmagent
 
 ### Processors
 
-- `memory_limiter` — prevents OOM under backpressure
-- `batch` — groups telemetry for efficient export
+- `memory_limiter` — prevents OOM under backpressure (used on both pipelines)
+- `batch/logs` — groups log records for efficient export (logs pipeline only; **not** used on the metrics pipeline to minimise alert latency)
 
 ### Exporters
 
-- `otlphttp/metrics` — forwards metrics to regional vmagent
-- `otlphttp/logs` — forwards logs to regional VictoriaLogs
+- `otlphttp/metrics` — forwards metrics directly to regional VictoriaMetrics (sending queue disabled for low latency)
+- `otlphttp/logs` — forwards logs to regional VictoriaLogs (disk-backed sending queue for durability)
 
 ### Extensions
 
@@ -42,7 +42,9 @@ Workload → [OTLP] → Local Collector → metrics → regional vmagent
 
 The `file_storage` extension provides a disk-backed WAL at `/var/lib/otelcol`. Each collector has its **own dedicated volume** so queues are never shared.
 
-If the regional backend is temporarily unavailable, the collector queues telemetry to disk and replays it on recovery.
+The persistent queue is used only for the **logs pipeline**. The metrics pipeline has `sending_queue: enabled: false` to minimise alert latency (see [Performance Tuning](../performance.md#3-otel-collector-disable-persistent-queue-for-metrics)).
+
+If VictoriaLogs is temporarily unavailable, the collector queues logs to disk and replays them on recovery.
 
 ## Configuration
 
@@ -69,16 +71,15 @@ processors:
   memory_limiter:
     check_interval: 1s
     limit_mib: 256
-  batch:
-    timeout: 1s
-    send_batch_size: 1024
+  batch/logs:
+    timeout: 200ms
+    send_batch_size: 256
 
 exporters:
   otlphttp/metrics:
-    endpoint: http://apac-vmagent:8429
+    endpoint: http://apac-victoriametrics:8428/opentelemetry
     sending_queue:
-      enabled: true
-      storage: file_storage
+      enabled: false
     retry_on_failure:
       enabled: true
   otlphttp/logs:
@@ -94,11 +95,11 @@ service:
   pipelines:
     metrics:
       receivers: [otlp]
-      processors: [memory_limiter, batch]
+      processors: [memory_limiter]
       exporters: [otlphttp/metrics]
     logs:
       receivers: [otlp]
-      processors: [memory_limiter, batch]
+      processors: [memory_limiter, batch/logs]
       exporters: [otlphttp/logs]
 ```
 
