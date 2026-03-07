@@ -9,6 +9,7 @@ import os
 import time
 import uuid
 
+import psutil
 from flask import Flask, jsonify, request
 from opentelemetry import metrics
 from opentelemetry.exporter.otlp.proto.http._log_exporter import OTLPLogExporter
@@ -96,17 +97,68 @@ meter.create_observable_gauge(
 )
 
 # ---------------------------------------------------------------------------
+# Process metrics
+# ---------------------------------------------------------------------------
+_process = psutil.Process()
+_start_time = time.time()
+
+
+def _observe_process_cpu(_options):
+    yield metrics.Observation(_process.cpu_percent(), {})
+
+
+def _observe_process_memory(_options):
+    yield metrics.Observation(_process.memory_info().rss, {})
+
+
+def _observe_process_threads(_options):
+    yield metrics.Observation(_process.num_threads(), {})
+
+
+def _observe_uptime(_options):
+    yield metrics.Observation(time.time() - _start_time, {})
+
+
+meter.create_observable_gauge(
+    name="process_cpu_percent",
+    description="Process CPU usage percentage",
+    callbacks=[_observe_process_cpu],
+)
+meter.create_observable_gauge(
+    name="process_memory_rss_bytes",
+    description="Process resident set size in bytes",
+    callbacks=[_observe_process_memory],
+)
+meter.create_observable_gauge(
+    name="process_threads",
+    description="Number of process threads",
+    callbacks=[_observe_process_threads],
+)
+meter.create_observable_gauge(
+    name="process_uptime_seconds",
+    description="Seconds since process started",
+    callbacks=[_observe_uptime],
+)
+
+http_request_counter = meter.create_counter(
+    name="http_requests_total",
+    description="Total HTTP requests served",
+)
+
+# ---------------------------------------------------------------------------
 # API routes
 # ---------------------------------------------------------------------------
 
 
 @app.route("/health", methods=["GET"])
 def health():
+    http_request_counter.add(1, {"method": "GET", "endpoint": "/health"})
     return jsonify({"status": "ok"})
 
 
 @app.route("/alerts", methods=["GET"])
 def list_alerts():
+    http_request_counter.add(1, {"method": "GET", "endpoint": "/alerts"})
     return jsonify(active_alerts)
 
 
@@ -123,6 +175,8 @@ def raise_alert():
 
     key = (REGION, SERVICE_NAME, COMPONENT, INSTANCE, alert_name, severity, alert_id)
     alert_gauge_values[key] = 1
+
+    http_request_counter.add(1, {"method": "POST", "endpoint": "/raise"})
 
     alert_record = {
         "alert_id": alert_id,
@@ -152,6 +206,8 @@ def raise_alert():
 @app.route("/clear", methods=["POST"])
 def clear_alert():
     data = request.get_json(force=True, silent=True) or {}
+
+    http_request_counter.add(1, {"method": "POST", "endpoint": "/clear"})
 
     alert_id = data.get("alert_id", "")
     if not alert_id:

@@ -22,7 +22,7 @@ processors:
 
 exporters:
   otlphttp/metrics:
-    endpoint: http://apac-vmagent:8429
+    endpoint: http://apac-victoriametrics:8428/opentelemetry
     sending_queue:
       enabled: true
       storage: file_storage

@@ -22,7 +22,7 @@ processors:
 
 exporters:
   otlphttp/metrics:
-    endpoint: http://eu-vmagent:8429
+    endpoint: http://eu-victoriametrics:8428/opentelemetry
     sending_queue:
       enabled: true
       storage: file_storage
