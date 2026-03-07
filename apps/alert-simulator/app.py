@@ -265,6 +265,8 @@ def _do_clear(alert_id, reason="manually cleared"):
         record["alert_name"], record["severity"], alert_id,
     )
     alert_gauge_values[key] = 0
+    roundtrip_key = (REGION, record["alert_name"], record["severity"], alert_id)
+    roundtrip_values.pop(roundtrip_key, None)
     http_request_counter.add(1, {"method": "POST", "endpoint": "/clear"})
 
     alert_logger.info("Alert cleared: %s", record["alert_name"], extra={
@@ -474,8 +476,10 @@ def alertmanager_webhook():
         record = active_alerts.get(alert_id)
         if record is None:
             continue
-        latency = now - record["event_time"]
         key = (REGION, record["alert_name"], record["severity"], alert_id)
+        if key in roundtrip_values:
+            continue
+        latency = now - record["event_time"]
         roundtrip_values[key] = latency
         print(f"[round-trip] {record['alert_name']}: {latency:.3f}s", flush=True)
         alert_logger.info(
