@@ -130,6 +130,7 @@ services:
     image: victoriametrics/vmagent:v1.108.1
     command:
       - "-remoteWrite.url=http://apac-victoriametrics:8428/api/v1/write"
+      - "-httpListenAddr=:8080"
       - "-opentsdbHTTPListenAddr=:8429"
       - "-promscrape.config=/etc/vmagent/scrape.yaml"
     volumes:
@@ -141,7 +142,7 @@ services:
       - lab-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8429/health"]
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8080/health"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -159,7 +160,7 @@ services:
       - lab-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8428/health"]
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8428/health"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -177,7 +178,7 @@ services:
       - lab-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9428/health"]
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:9428/health"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -201,7 +202,7 @@ services:
       - lab-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8880/health"]
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8880/health"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -221,7 +222,7 @@ services:
       - lab-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9093/-/healthy"]
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:9093/-/healthy"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -357,6 +358,7 @@ services:
     image: victoriametrics/vmagent:v1.108.1
     command:
       - "-remoteWrite.url=http://eu-victoriametrics:8428/api/v1/write"
+      - "-httpListenAddr=:8080"
       - "-opentsdbHTTPListenAddr=:8429"
       - "-promscrape.config=/etc/vmagent/scrape.yaml"
     volumes:
@@ -368,7 +370,7 @@ services:
       - lab-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8429/health"]
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8080/health"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -386,7 +388,7 @@ services:
       - lab-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8428/health"]
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8428/health"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -404,7 +406,7 @@ services:
       - lab-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9428/health"]
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:9428/health"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -428,7 +430,7 @@ services:
       - lab-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8880/health"]
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8880/health"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -448,7 +450,7 @@ services:
       - lab-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9093/-/healthy"]
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:9093/-/healthy"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -584,6 +586,7 @@ services:
     image: victoriametrics/vmagent:v1.108.1
     command:
       - "-remoteWrite.url=http://us-victoriametrics:8428/api/v1/write"
+      - "-httpListenAddr=:8080"
       - "-opentsdbHTTPListenAddr=:8429"
       - "-promscrape.config=/etc/vmagent/scrape.yaml"
     volumes:
@@ -595,7 +598,7 @@ services:
       - lab-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8429/health"]
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8080/health"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -613,7 +616,7 @@ services:
       - lab-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8428/health"]
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8428/health"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -631,7 +634,7 @@ services:
       - lab-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9428/health"]
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:9428/health"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -655,7 +658,7 @@ services:
       - lab-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8880/health"]
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8880/health"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -675,7 +678,7 @@ services:
       - lab-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9093/-/healthy"]
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:9093/-/healthy"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -707,7 +710,7 @@ services:
       - lab-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3000/api/health"]
       interval: 10s
       timeout: 5s
       retries: 3
