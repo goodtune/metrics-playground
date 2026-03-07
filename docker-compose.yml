@@ -154,6 +154,7 @@ services:
       - "-storageDataPath=/victoria-metrics-data"
       - "-retentionPeriod=30d"
       - "-httpListenAddr=:8428"
+      - "-search.latencyOffset=2s"
     volumes:
       - apac_vm_data:/victoria-metrics-data
     networks:
@@ -190,7 +191,8 @@ services:
       - "-datasource.url=http://apac-victoriametrics:8428"
       - "-notifier.url=http://apac-alertmanager:9093"
       - "-rule=/etc/vmalert/*.yaml"
-      - "-evaluationInterval=5s"
+      - "-evaluationInterval=1s"
+      - "-rule.evalDelay=2s"
       - "-httpListenAddr=:8880"
     volumes:
       - ./config/apac/vmalert:/etc/vmalert:ro
@@ -382,6 +384,7 @@ services:
       - "-storageDataPath=/victoria-metrics-data"
       - "-retentionPeriod=30d"
       - "-httpListenAddr=:8428"
+      - "-search.latencyOffset=2s"
     volumes:
       - eu_vm_data:/victoria-metrics-data
     networks:
@@ -418,7 +421,8 @@ services:
       - "-datasource.url=http://eu-victoriametrics:8428"
       - "-notifier.url=http://eu-alertmanager:9093"
       - "-rule=/etc/vmalert/*.yaml"
-      - "-evaluationInterval=5s"
+      - "-evaluationInterval=1s"
+      - "-rule.evalDelay=2s"
       - "-httpListenAddr=:8880"
     volumes:
       - ./config/eu/vmalert:/etc/vmalert:ro
@@ -610,6 +614,7 @@ services:
       - "-storageDataPath=/victoria-metrics-data"
       - "-retentionPeriod=30d"
       - "-httpListenAddr=:8428"
+      - "-search.latencyOffset=2s"
     volumes:
       - us_vm_data:/victoria-metrics-data
     networks:
@@ -646,7 +651,8 @@ services:
       - "-datasource.url=http://us-victoriametrics:8428"
       - "-notifier.url=http://us-alertmanager:9093"
       - "-rule=/etc/vmalert/*.yaml"
-      - "-evaluationInterval=5s"
+      - "-evaluationInterval=1s"
+      - "-rule.evalDelay=2s"
       - "-httpListenAddr=:8880"
     volumes:
       - ./config/us/vmalert:/etc/vmalert:ro
@@ -692,6 +698,7 @@ services:
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_DASHBOARDS_MIN_REFRESH_INTERVAL=1s
       - GF_INSTALL_PLUGINS=victoriametrics-logs-datasource
     ports:
       - "3000:3000"

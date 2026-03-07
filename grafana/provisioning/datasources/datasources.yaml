@@ -7,7 +7,7 @@ datasources:
     url: http://apac-victoriametrics:8428
     isDefault: true
     jsonData:
-      timeInterval: 5s
+      timeInterval: 1s
     editable: false
 
   - name: victoriametrics-eu
@@ -15,7 +15,7 @@ datasources:
     access: proxy
     url: http://eu-victoriametrics:8428
     jsonData:
-      timeInterval: 5s
+      timeInterval: 1s
     editable: false
 
   - name: victoriametrics-us
@@ -23,7 +23,7 @@ datasources:
     access: proxy
     url: http://us-victoriametrics:8428
     jsonData:
-      timeInterval: 5s
+      timeInterval: 1s
     editable: false
 
   - name: victorialogs-apac
