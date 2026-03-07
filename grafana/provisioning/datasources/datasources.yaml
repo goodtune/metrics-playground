@@ -1,0 +1,45 @@
+apiVersion: 1
+
+datasources:
+  - name: victoriametrics-apac
+    type: prometheus
+    access: proxy
+    url: http://apac-victoriametrics:8428
+    isDefault: true
+    jsonData:
+      timeInterval: 1s
+    editable: false
+
+  - name: victoriametrics-eu
+    type: prometheus
+    access: proxy
+    url: http://eu-victoriametrics:8428
+    jsonData:
+      timeInterval: 1s
+    editable: false
+
+  - name: victoriametrics-us
+    type: prometheus
+    access: proxy
+    url: http://us-victoriametrics:8428
+    jsonData:
+      timeInterval: 1s
+    editable: false
+
+  - name: victorialogs-apac
+    type: victoriametrics-logs-datasource
+    access: proxy
+    url: http://apac-victorialogs:9428
+    editable: false
+
+  - name: victorialogs-eu
+    type: victoriametrics-logs-datasource
+    access: proxy
+    url: http://eu-victorialogs:9428
+    editable: false
+
+  - name: victorialogs-us
+    type: victoriametrics-logs-datasource
+    access: proxy
+    url: http://us-victorialogs:9428
+    editable: false

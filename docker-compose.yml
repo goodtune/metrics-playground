@@ -1,0 +1,784 @@
+services:
+  # ==========================================================================
+  # APAC Region
+  # ==========================================================================
+
+  # --- Workloads ---
+  apac-app-1:
+    build: ./apps/alert-simulator
+    environment:
+      - REGION=apac
+      - SERVICE_NAME=apac-app-1
+      - COMPONENT=workload
+      - INSTANCE=apac-app-1
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://apac-otel-1:4318
+    ports:
+      - "8081:8080"
+    depends_on:
+      - apac-otel-1
+    networks:
+      - lab-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  apac-app-2:
+    build: ./apps/alert-simulator
+    environment:
+      - REGION=apac
+      - SERVICE_NAME=apac-app-2
+      - COMPONENT=workload
+      - INSTANCE=apac-app-2
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://apac-otel-2:4318
+    ports:
+      - "8082:8080"
+    depends_on:
+      - apac-otel-2
+    networks:
+      - lab-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  apac-app-3:
+    build: ./apps/alert-simulator
+    environment:
+      - REGION=apac
+      - SERVICE_NAME=apac-app-3
+      - COMPONENT=workload
+      - INSTANCE=apac-app-3
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://apac-otel-3:4318
+    ports:
+      - "8083:8080"
+    depends_on:
+      - apac-otel-3
+    networks:
+      - lab-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # --- Local OTEL Collectors ---
+  apac-otel-1:
+    image: otel/opentelemetry-collector-contrib:0.120.0
+    user: "0:0"
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./config/apac/otel-1:/etc/otelcol:ro
+      - apac_otel_1_data:/var/lib/otelcol
+    depends_on:
+      - apac-vmagent
+      - apac-victorialogs
+    networks:
+      - lab-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "/otelcol-contrib", "components"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  apac-otel-2:
+    image: otel/opentelemetry-collector-contrib:0.120.0
+    user: "0:0"
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./config/apac/otel-2:/etc/otelcol:ro
+      - apac_otel_2_data:/var/lib/otelcol
+    depends_on:
+      - apac-vmagent
+      - apac-victorialogs
+    networks:
+      - lab-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "/otelcol-contrib", "components"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  apac-otel-3:
+    image: otel/opentelemetry-collector-contrib:0.120.0
+    user: "0:0"
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./config/apac/otel-3:/etc/otelcol:ro
+      - apac_otel_3_data:/var/lib/otelcol
+    depends_on:
+      - apac-vmagent
+      - apac-victorialogs
+    networks:
+      - lab-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "/otelcol-contrib", "components"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # --- Regional vmagent ---
+  apac-vmagent:
+    image: victoriametrics/vmagent:v1.108.1
+    command:
+      - "-remoteWrite.url=http://apac-victoriametrics:8428/api/v1/write"
+      - "-httpListenAddr=:8080"
+      - "-opentsdbHTTPListenAddr=:8429"
+      - "-promscrape.config=/etc/vmagent/scrape.yaml"
+    volumes:
+      - ./config/apac/vmagent:/etc/vmagent:ro
+      - apac_vmagent_data:/vmagent-data
+    depends_on:
+      - apac-victoriametrics
+    networks:
+      - lab-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # --- Regional VictoriaMetrics ---
+  apac-victoriametrics:
+    image: victoriametrics/victoria-metrics:v1.108.1
+    command:
+      - "-storageDataPath=/victoria-metrics-data"
+      - "-retentionPeriod=30d"
+      - "-httpListenAddr=:8428"
+      - "-search.latencyOffset=0s"
+      - "-inmemoryDataFlushInterval=0s"
+    volumes:
+      - apac_vm_data:/victoria-metrics-data
+    networks:
+      - lab-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8428/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # --- Regional VictoriaLogs ---
+  apac-victorialogs:
+    image: victoriametrics/victoria-logs:v1.0.0-victorialogs
+    command:
+      - "-storageDataPath=/victoria-logs-data"
+      - "-retentionPeriod=30d"
+      - "-httpListenAddr=:9428"
+    volumes:
+      - apac_vlogs_data:/victoria-logs-data
+    networks:
+      - lab-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:9428/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # --- Regional vmalert ---
+  apac-vmalert:
+    image: victoriametrics/vmalert:v1.108.1
+    command:
+      - "-datasource.url=http://apac-victoriametrics:8428"
+      - "-notifier.url=http://apac-alertmanager:9093"
+      - "-rule=/etc/vmalert/*.yaml"
+      - "-evaluationInterval=1s"
+      - "-rule.evalDelay=0s"
+      - "-httpListenAddr=:8880"
+    volumes:
+      - ./config/apac/vmalert:/etc/vmalert:ro
+      - apac_vmalert_data:/vmalert-data
+    depends_on:
+      - apac-victoriametrics
+      - apac-alertmanager
+    networks:
+      - lab-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8880/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # --- Regional Alertmanager ---
+  apac-alertmanager:
+    image: prom/alertmanager:v0.27.0
+    user: "0:0"
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+      - "--storage.path=/alertmanager-data"
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./config/apac/alertmanager:/etc/alertmanager:ro
+      - apac_alertmanager_data:/alertmanager-data
+    networks:
+      - lab-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:9093/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ==========================================================================
+  # EU Region
+  # ==========================================================================
+
+  # --- Workloads ---
+  eu-app-1:
+    build: ./apps/alert-simulator
+    environment:
+      - REGION=eu
+      - SERVICE_NAME=eu-app-1
+      - COMPONENT=workload
+      - INSTANCE=eu-app-1
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://eu-otel-1:4318
+    ports:
+      - "8084:8080"
+    depends_on:
+      - eu-otel-1
+    networks:
+      - lab-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  eu-app-2:
+    build: ./apps/alert-simulator
+    environment:
+      - REGION=eu
+      - SERVICE_NAME=eu-app-2
+      - COMPONENT=workload
+      - INSTANCE=eu-app-2
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://eu-otel-2:4318
+    ports:
+      - "8085:8080"
+    depends_on:
+      - eu-otel-2
+    networks:
+      - lab-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  eu-app-3:
+    build: ./apps/alert-simulator
+    environment:
+      - REGION=eu
+      - SERVICE_NAME=eu-app-3
+      - COMPONENT=workload
+      - INSTANCE=eu-app-3
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://eu-otel-3:4318
+    ports:
+      - "8086:8080"
+    depends_on:
+      - eu-otel-3
+    networks:
+      - lab-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # --- Local OTEL Collectors ---
+  eu-otel-1:
+    image: otel/opentelemetry-collector-contrib:0.120.0
+    user: "0:0"
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./config/eu/otel-1:/etc/otelcol:ro
+      - eu_otel_1_data:/var/lib/otelcol
+    depends_on:
+      - eu-vmagent
+      - eu-victorialogs
+    networks:
+      - lab-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "/otelcol-contrib", "components"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  eu-otel-2:
+    image: otel/opentelemetry-collector-contrib:0.120.0
+    user: "0:0"
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./config/eu/otel-2:/etc/otelcol:ro
+      - eu_otel_2_data:/var/lib/otelcol
+    depends_on:
+      - eu-vmagent
+      - eu-victorialogs
+    networks:
+      - lab-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "/otelcol-contrib", "components"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  eu-otel-3:
+    image: otel/opentelemetry-collector-contrib:0.120.0
+    user: "0:0"
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./config/eu/otel-3:/etc/otelcol:ro
+      - eu_otel_3_data:/var/lib/otelcol
+    depends_on:
+      - eu-vmagent
+      - eu-victorialogs
+    networks:
+      - lab-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "/otelcol-contrib", "components"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # --- Regional vmagent ---
+  eu-vmagent:
+    image: victoriametrics/vmagent:v1.108.1
+    command:
+      - "-remoteWrite.url=http://eu-victoriametrics:8428/api/v1/write"
+      - "-httpListenAddr=:8080"
+      - "-opentsdbHTTPListenAddr=:8429"
+      - "-promscrape.config=/etc/vmagent/scrape.yaml"
+    volumes:
+      - ./config/eu/vmagent:/etc/vmagent:ro
+      - eu_vmagent_data:/vmagent-data
+    depends_on:
+      - eu-victoriametrics
+    networks:
+      - lab-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # --- Regional VictoriaMetrics ---
+  eu-victoriametrics:
+    image: victoriametrics/victoria-metrics:v1.108.1
+    command:
+      - "-storageDataPath=/victoria-metrics-data"
+      - "-retentionPeriod=30d"
+      - "-httpListenAddr=:8428"
+      - "-search.latencyOffset=0s"
+      - "-inmemoryDataFlushInterval=0s"
+    volumes:
+      - eu_vm_data:/victoria-metrics-data
+    networks:
+      - lab-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8428/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # --- Regional VictoriaLogs ---
+  eu-victorialogs:
+    image: victoriametrics/victoria-logs:v1.0.0-victorialogs
+    command:
+      - "-storageDataPath=/victoria-logs-data"
+      - "-retentionPeriod=30d"
+      - "-httpListenAddr=:9428"
+    volumes:
+      - eu_vlogs_data:/victoria-logs-data
+    networks:
+      - lab-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:9428/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # --- Regional vmalert ---
+  eu-vmalert:
+    image: victoriametrics/vmalert:v1.108.1
+    command:
+      - "-datasource.url=http://eu-victoriametrics:8428"
+      - "-notifier.url=http://eu-alertmanager:9093"
+      - "-rule=/etc/vmalert/*.yaml"
+      - "-evaluationInterval=1s"
+      - "-rule.evalDelay=0s"
+      - "-httpListenAddr=:8880"
+    volumes:
+      - ./config/eu/vmalert:/etc/vmalert:ro
+      - eu_vmalert_data:/vmalert-data
+    depends_on:
+      - eu-victoriametrics
+      - eu-alertmanager
+    networks:
+      - lab-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8880/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # --- Regional Alertmanager ---
+  eu-alertmanager:
+    image: prom/alertmanager:v0.27.0
+    user: "0:0"
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+      - "--storage.path=/alertmanager-data"
+    ports:
+      - "9094:9093"
+    volumes:
+      - ./config/eu/alertmanager:/etc/alertmanager:ro
+      - eu_alertmanager_data:/alertmanager-data
+    networks:
+      - lab-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:9093/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ==========================================================================
+  # US Region
+  # ==========================================================================
+
+  # --- Workloads ---
+  us-app-1:
+    build: ./apps/alert-simulator
+    environment:
+      - REGION=us
+      - SERVICE_NAME=us-app-1
+      - COMPONENT=workload
+      - INSTANCE=us-app-1
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://us-otel-1:4318
+    ports:
+      - "8087:8080"
+    depends_on:
+      - us-otel-1
+    networks:
+      - lab-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  us-app-2:
+    build: ./apps/alert-simulator
+    environment:
+      - REGION=us
+      - SERVICE_NAME=us-app-2
+      - COMPONENT=workload
+      - INSTANCE=us-app-2
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://us-otel-2:4318
+    ports:
+      - "8088:8080"
+    depends_on:
+      - us-otel-2
+    networks:
+      - lab-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  us-app-3:
+    build: ./apps/alert-simulator
+    environment:
+      - REGION=us
+      - SERVICE_NAME=us-app-3
+      - COMPONENT=workload
+      - INSTANCE=us-app-3
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://us-otel-3:4318
+    ports:
+      - "8089:8080"
+    depends_on:
+      - us-otel-3
+    networks:
+      - lab-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # --- Local OTEL Collectors ---
+  us-otel-1:
+    image: otel/opentelemetry-collector-contrib:0.120.0
+    user: "0:0"
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./config/us/otel-1:/etc/otelcol:ro
+      - us_otel_1_data:/var/lib/otelcol
+    depends_on:
+      - us-vmagent
+      - us-victorialogs
+    networks:
+      - lab-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "/otelcol-contrib", "components"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  us-otel-2:
+    image: otel/opentelemetry-collector-contrib:0.120.0
+    user: "0:0"
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./config/us/otel-2:/etc/otelcol:ro
+      - us_otel_2_data:/var/lib/otelcol
+    depends_on:
+      - us-vmagent
+      - us-victorialogs
+    networks:
+      - lab-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "/otelcol-contrib", "components"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  us-otel-3:
+    image: otel/opentelemetry-collector-contrib:0.120.0
+    user: "0:0"
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./config/us/otel-3:/etc/otelcol:ro
+      - us_otel_3_data:/var/lib/otelcol
+    depends_on:
+      - us-vmagent
+      - us-victorialogs
+    networks:
+      - lab-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "/otelcol-contrib", "components"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # --- Regional vmagent ---
+  us-vmagent:
+    image: victoriametrics/vmagent:v1.108.1
+    command:
+      - "-remoteWrite.url=http://us-victoriametrics:8428/api/v1/write"
+      - "-httpListenAddr=:8080"
+      - "-opentsdbHTTPListenAddr=:8429"
+      - "-promscrape.config=/etc/vmagent/scrape.yaml"
+    volumes:
+      - ./config/us/vmagent:/etc/vmagent:ro
+      - us_vmagent_data:/vmagent-data
+    depends_on:
+      - us-victoriametrics
+    networks:
+      - lab-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # --- Regional VictoriaMetrics ---
+  us-victoriametrics:
+    image: victoriametrics/victoria-metrics:v1.108.1
+    command:
+      - "-storageDataPath=/victoria-metrics-data"
+      - "-retentionPeriod=30d"
+      - "-httpListenAddr=:8428"
+      - "-search.latencyOffset=0s"
+      - "-inmemoryDataFlushInterval=0s"
+    volumes:
+      - us_vm_data:/victoria-metrics-data
+    networks:
+      - lab-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8428/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # --- Regional VictoriaLogs ---
+  us-victorialogs:
+    image: victoriametrics/victoria-logs:v1.0.0-victorialogs
+    command:
+      - "-storageDataPath=/victoria-logs-data"
+      - "-retentionPeriod=30d"
+      - "-httpListenAddr=:9428"
+    volumes:
+      - us_vlogs_data:/victoria-logs-data
+    networks:
+      - lab-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:9428/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # --- Regional vmalert ---
+  us-vmalert:
+    image: victoriametrics/vmalert:v1.108.1
+    command:
+      - "-datasource.url=http://us-victoriametrics:8428"
+      - "-notifier.url=http://us-alertmanager:9093"
+      - "-rule=/etc/vmalert/*.yaml"
+      - "-evaluationInterval=1s"
+      - "-rule.evalDelay=0s"
+      - "-httpListenAddr=:8880"
+    volumes:
+      - ./config/us/vmalert:/etc/vmalert:ro
+      - us_vmalert_data:/vmalert-data
+    depends_on:
+      - us-victoriametrics
+      - us-alertmanager
+    networks:
+      - lab-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8880/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # --- Regional Alertmanager ---
+  us-alertmanager:
+    image: prom/alertmanager:v0.27.0
+    user: "0:0"
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+      - "--storage.path=/alertmanager-data"
+    ports:
+      - "9095:9093"
+    volumes:
+      - ./config/us/alertmanager:/etc/alertmanager:ro
+      - us_alertmanager_data:/alertmanager-data
+    networks:
+      - lab-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:9093/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ==========================================================================
+  # Global Services
+  # ==========================================================================
+
+  grafana:
+    image: grafana/grafana:11.4.0
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=false
+      - GF_SECURITY_DISABLE_INITIAL_ADMIN_CREATION=false
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_DASHBOARDS_MIN_REFRESH_INTERVAL=1s
+      - GF_INSTALL_PLUGINS=victoriametrics-logs-datasource
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - apac-victoriametrics
+      - eu-victoriametrics
+      - us-victoriametrics
+      - apac-victorialogs
+      - eu-victorialogs
+      - us-victorialogs
+    networks:
+      - lab-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+# ==========================================================================
+# Volumes
+# ==========================================================================
+volumes:
+  # OTEL collector queues
+  apac_otel_1_data:
+  apac_otel_2_data:
+  apac_otel_3_data:
+  eu_otel_1_data:
+  eu_otel_2_data:
+  eu_otel_3_data:
+  us_otel_1_data:
+  us_otel_2_data:
+  us_otel_3_data:
+
+  # vmagent
+  apac_vmagent_data:
+  eu_vmagent_data:
+  us_vmagent_data:
+
+  # VictoriaMetrics
+  apac_vm_data:
+  eu_vm_data:
+  us_vm_data:
+
+  # VictoriaLogs
+  apac_vlogs_data:
+  eu_vlogs_data:
+  us_vlogs_data:
+
+  # vmalert
+  apac_vmalert_data:
+  eu_vmalert_data:
+  us_vmalert_data:
+
+  # Alertmanager
+  apac_alertmanager_data:
+  eu_alertmanager_data:
+  us_alertmanager_data:
+
+  # Grafana
+  grafana_data:
+
+# ==========================================================================
+# Networks
+# ==========================================================================
+networks:
+  lab-net:
+    driver: bridge

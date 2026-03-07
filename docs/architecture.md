@@ -1,17 +1,22 @@
-# Metrics Playground
-
-A local, Docker Compose-based lab for evaluating event-based alerting with OpenTelemetry, VictoriaMetrics, VictoriaLogs, vmalert, Alertmanager, and Grafana.
+# Architecture
 
 ## Overview
 
-This lab models a three-region (APAC, EU, US) observability stack with **34 services**. Each region has 3 workloads, 3 local OTEL collectors, a vmagent, VictoriaMetrics, VictoriaLogs, vmalert, and Alertmanager. A single Grafana instance provides the global view.
+The lab models a three-region observability and alerting stack. Each region contains a self-contained slice:
 
-One event produces two signals:
+| Per Region | Count |
+|---|---|
+| Workload containers | 3 |
+| Local OpenTelemetry Collectors | 3 |
+| vmagent | 1 |
+| VictoriaMetrics | 1 |
+| VictoriaLogs | 1 |
+| vmalert | 1 |
+| Alertmanager | 1 |
 
-- A **metric** (`lab_alert_active` gauge) that drives the alerting decision
-- A **log record** that carries rich context for investigation
+A single Grafana instance connects to all regional backends. **34 services total**.
 
-## Architecture
+## Diagram
 
 ```mermaid
 flowchart LR
@@ -122,58 +127,41 @@ flowchart LR
   UVLS -->|VictoriaLogs datasource| G
 ```
 
-## Quick Start
+## Signal Flow
 
-```bash
-docker compose up -d
-```
+| Source | Signal | Destination | Purpose |
+|---|---|---|---|
+| Workload | OTLP metrics | Local collector | Emit alert-driving metric |
+| Workload | OTLP logs | Local collector | Emit rich context log |
+| Local collector | Metrics | Regional vmagent | Regional metric ingress |
+| Local collector | Logs | Regional VictoriaLogs | Regional log ingestion |
+| vmagent | Prometheus remote_write | Regional VictoriaMetrics | Metrics persistence |
+| vmalert | Query API | Regional VictoriaMetrics | Rule evaluation |
+| vmalert | Alert notifications | Regional Alertmanager | Alert lifecycle management |
+| Grafana | Datasource query | Regional VictoriaMetrics | Dashboards |
+| Grafana | Datasource query | Regional VictoriaLogs | Logs and correlations |
 
-## Raise an Alert
+## Event Model
 
-```bash
-curl -X POST http://localhost:8081/raise \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "alert_name": "HighLatency",
-    "severity": "critical",
-    "reason": "p99 latency exceeded 500ms"
-  }'
-```
+A single logical event becomes two telemetry records:
 
-## Clear an Alert
+### Metric Signal
 
-```bash
-curl -X POST http://localhost:8081/clear \
-  -H 'Content-Type: application/json' \
-  -d '{"alert_id": "<alert_id>"}'
-```
+- **Name**: `lab_alert_active`
+- **Type**: Gauge
+- **Values**: `1` (active/firing), `0` (cleared)
+- **Labels**: `region`, `service`, `component`, `instance`, `alert_name`, `severity`, `alert_id`, `source`
 
-## Exposed Ports
+### Log Signal
 
-| Port | Service |
-|---|---|
-| 3000 | Grafana (admin/admin) |
-| 8081–8083 | APAC workloads |
-| 8084–8086 | EU workloads |
-| 8087–8089 | US workloads |
-| 9093 | APAC Alertmanager |
-| 9094 | EU Alertmanager |
-| 9095 | US Alertmanager |
+Rich context attributes including `alert_id`, `alert_name`, `state`, `region`, `service`, `component`, `severity`, `reason`, `message`, `correlation_id`, and `event_time`.
 
-## Documentation
+The `alert_id` field enables correlation between the metric and log signals in Grafana.
 
-Full documentation is available via [MkDocs](https://www.mkdocs.org/):
+## Networking
 
-```bash
-pip install mkdocs
-mkdocs serve
-```
+All services share a single Docker bridge network (`lab-net`). Internal service-to-service traffic is not exposed to the host.
 
-Then open [http://localhost:8000](http://localhost:8000).
+## Persistence
 
-## Tear Down
-
-```bash
-docker compose down        # stop containers
-docker compose down -v     # stop and remove volumes
-```
+Named Docker volumes are provisioned for every stateful component (28 volumes total), ensuring state survives container restarts for meaningful failure testing.
