@@ -114,14 +114,12 @@ flowchart LR
     UVAL -->|active alerts| UAM
   end
 
-  G[Grafana Global View]
-
-  G -->|Prometheus datasource| AVMS
-  G -->|Prometheus datasource| EVMS
-  G -->|Prometheus datasource| UVMS
-  G -->|VictoriaLogs datasource| AVLS
-  G -->|VictoriaLogs datasource| EVLS
-  G -->|VictoriaLogs datasource| UVLS
+  AVMS -->|Prometheus datasource| G[Grafana Global View]
+  EVMS -->|Prometheus datasource| G
+  UVMS -->|Prometheus datasource| G
+  AVLS -->|VictoriaLogs datasource| G
+  EVLS -->|VictoriaLogs datasource| G
+  UVLS -->|VictoriaLogs datasource| G
 ```
 
 ## Quick Start
