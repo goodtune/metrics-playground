@@ -212,6 +212,7 @@ services:
   # --- Regional Alertmanager ---
   apac-alertmanager:
     image: prom/alertmanager:v0.27.0
+    user: "0:0"
     command:
       - "--config.file=/etc/alertmanager/alertmanager.yml"
       - "--storage.path=/alertmanager-data"
@@ -442,6 +443,7 @@ services:
   # --- Regional Alertmanager ---
   eu-alertmanager:
     image: prom/alertmanager:v0.27.0
+    user: "0:0"
     command:
       - "--config.file=/etc/alertmanager/alertmanager.yml"
       - "--storage.path=/alertmanager-data"
@@ -672,6 +674,7 @@ services:
   # --- Regional Alertmanager ---
   us-alertmanager:
     image: prom/alertmanager:v0.27.0
+    user: "0:0"
     command:
       - "--config.file=/etc/alertmanager/alertmanager.yml"
       - "--storage.path=/alertmanager-data"

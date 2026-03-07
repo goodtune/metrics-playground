@@ -10,4 +10,10 @@ route:
 
 receivers:
   - name: default
-    webhook_configs: []
+    webhook_configs:
+      - url: http://eu-app-1:8080/webhook
+        send_resolved: false
+      - url: http://eu-app-2:8080/webhook
+        send_resolved: false
+      - url: http://eu-app-3:8080/webhook
+        send_resolved: false

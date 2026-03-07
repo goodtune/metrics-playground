@@ -1,6 +1,6 @@
 groups:
   - name: lab-alerts
-    interval: 5s
+    interval: 1s
     rules:
       - alert: LabAlertActive
         expr: max by (region, service, component, instance, alert_id, alert_name, severity) (lab_alert_active == 1)

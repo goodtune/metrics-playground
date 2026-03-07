@@ -143,6 +143,32 @@ http_request_counter = meter.create_counter(
     description="Total HTTP requests served",
 )
 
+# ---------------------------------------------------------------------------
+# Round-trip latency tracking
+# ---------------------------------------------------------------------------
+roundtrip_values: dict[tuple, float] = {}
+
+
+def _observe_roundtrip(_options):
+    """Callback for the round-trip latency gauge."""
+    for labels, value in list(roundtrip_values.items()):
+        yield metrics.Observation(
+            value,
+            {
+                "region": labels[0],
+                "alert_name": labels[1],
+                "severity": labels[2],
+                "alert_id": labels[3],
+            },
+        )
+
+
+meter.create_observable_gauge(
+    name="lab_alert_roundtrip_seconds",
+    description="Seconds from alert raise to Alertmanager webhook delivery",
+    callbacks=[_observe_roundtrip],
+)
+
 
 # ---------------------------------------------------------------------------
 # SSE / Datastar helpers
@@ -434,6 +460,39 @@ def clear_alert():
         return jsonify({"error": "alert not found"}), 404
 
     return jsonify({"status": "cleared", "alert_id": alert_id})
+
+
+@app.route("/webhook", methods=["POST"])
+def alertmanager_webhook():
+    """Receive Alertmanager webhook and compute round-trip latency."""
+    now = time.time()
+    data = request.get_json(force=True, silent=True) or {}
+    results = []
+    for alert in data.get("alerts", []):
+        labels = alert.get("labels", {})
+        alert_id = labels.get("alert_id", "")
+        record = active_alerts.get(alert_id)
+        if record is None:
+            continue
+        latency = now - record["event_time"]
+        key = (REGION, record["alert_name"], record["severity"], alert_id)
+        roundtrip_values[key] = latency
+        print(f"[round-trip] {record['alert_name']}: {latency:.3f}s", flush=True)
+        alert_logger.info(
+            "Alert round-trip: %s in %.3fs",
+            record["alert_name"],
+            latency,
+            extra={
+                "alert_id": alert_id,
+                "alert_name": record["alert_name"],
+                "severity": record["severity"],
+                "region": REGION,
+                "roundtrip_seconds": latency,
+                "state": "webhook_received",
+            },
+        )
+        results.append({"alert_id": alert_id, "roundtrip_seconds": round(latency, 3)})
+    return jsonify({"processed": len(results), "results": results})
 
 
 if __name__ == "__main__":
