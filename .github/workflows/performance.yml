@@ -1,0 +1,112 @@
+name: Performance Test
+
+on:
+  schedule:
+    - cron: "0 * * * *" # every hour
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: performance-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  performance-test:
+    name: 10-Minute Alert Pipeline Load Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Start the lab
+        run: docker compose up -d --build --wait
+        timeout-minutes: 10
+
+      - name: Wait for series pre-registration
+        run: |
+          echo "Waiting 30s for pre-registered metric series to be indexed..."
+          sleep 30
+
+          # Verify all 9 apps are healthy
+          for port in 8081 8082 8083 8084 8085 8086 8087 8088 8089; do
+            echo -n "Checking app on port $port... "
+            curl -sf "http://localhost:$port/health" > /dev/null && echo "OK" || echo "FAIL"
+          done
+
+          # Verify Grafana is up
+          echo -n "Checking Grafana... "
+          curl -sf "http://localhost:3000/api/health" > /dev/null && echo "OK" || echo "FAIL"
+
+      - name: Run 10-minute load test
+        run: python3 scripts/load-test.py 600
+        timeout-minutes: 12
+
+      - name: Wait for final metrics flush
+        run: |
+          echo "Waiting 15s for final metrics to flush through the pipeline..."
+          sleep 15
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Playwright
+        run: |
+          npm init -y > /dev/null 2>&1
+          npm install playwright@latest
+          npx playwright install chromium --with-deps
+
+      - name: Capture Grafana dashboard screenshots
+        run: node scripts/ci/capture-dashboards.mjs
+
+      - name: Collect metrics from VictoriaMetrics
+        run: python3 scripts/ci/collect-metrics.py
+
+      - name: Upload dashboard screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dashboard-screenshots
+          path: perf-results/*.png
+          if-no-files-found: warn
+          retention-days: 90
+
+      - name: Fetch previous run results
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/ci/fetch-previous-results.py
+
+      - name: Fetch main branch baseline (PR only)
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/ci/fetch-main-baseline.py
+
+      - name: Generate summary report
+        env:
+          GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: python3 scripts/ci/generate-report.py >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Regression gate (PR only)
+        if: github.event_name == 'pull_request'
+        run: python3 scripts/ci/regression-gate.py
+
+      - name: Upload results artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-results
+          path: perf-results/
+          if-no-files-found: warn
+          retention-days: 90
+
+      - name: Tear down lab
+        if: always()
+        run: docker compose down -v
