@@ -5,6 +5,11 @@ on:
     - cron: "0 * * * *" # every hour
   pull_request:
     branches: [main]
+    paths:
+      - "docker-compose.yml"
+      - "config/**/otel-*/**"
+      - "config/**/vmagent/**"
+      - "config/**/vmalert/**"
   workflow_dispatch:
 
 concurrency:
