@@ -345,9 +345,34 @@ await globalPage.close();
 
 // Step 8: Operator Dashboard (Datastar SSE)
 console.log("\nStep 8: Checking Operator Dashboard (Datastar SSE)...");
+
+// Wait for alerts to arrive through the full pipeline:
+// workload → OTEL → VictoriaMetrics → vmalert → Alertmanager → webhook → dashboard DB
+// Poll the JSON API until at least one firing alert is present.
+const apiPollUrl = `${DASHBOARD_URL}/api/alerts?status=firing`;
+const pollStart = Date.now();
+const pollTimeout = 120_000; // 2 minutes
+let apiAlerts = [];
+console.log("  Waiting for alerts to arrive via webhook pipeline...");
+while (Date.now() - pollStart < pollTimeout) {
+  try {
+    const resp = await fetch(apiPollUrl);
+    if (resp.ok) {
+      apiAlerts = await resp.json();
+      if (Array.isArray(apiAlerts) && apiAlerts.length > 0) {
+        console.log(`  Found ${apiAlerts.length} firing alert(s) after ${Math.round((Date.now() - pollStart) / 1000)}s`);
+        break;
+      }
+    }
+  } catch (_) {
+    // Dashboard may not be ready yet
+  }
+  await new Promise((r) => setTimeout(r, 3000));
+}
+
 const opPage = await context.newPage();
 await opPage.goto(DASHBOARD_URL, { waitUntil: "networkidle" });
-// Wait for SSE feed to deliver initial fragments
+// Give SSE feed time to deliver the initial fragments
 await opPage.waitForTimeout(5000);
 
 await screenshot(opPage, "operator-dashboard-live");
