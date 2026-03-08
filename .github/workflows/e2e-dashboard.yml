@@ -51,6 +51,15 @@ jobs:
       - name: Run E2E dashboard test
         run: node scripts/ci/e2e-dashboard.mjs
 
+      - name: Upload E2E screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-dashboard-screenshots
+          path: e2e-results/*.png
+          if-no-files-found: warn
+          retention-days: 90
+
       - name: Tear down lab
         if: always()
         run: docker compose down -v

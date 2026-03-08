@@ -5,15 +5,19 @@
  * verify they appear in the Grafana dashboards, drill down into logs,
  * navigate back, clear alerts, and verify they disappear.
  *
+ * Takes screenshots at each critical step and saves them to e2e-results/.
+ *
  * This is distinct from the load test — it tests dashboard functionality,
  * not pipeline throughput.
  */
 
 import { chromium } from "playwright";
 import http from "http";
+import { mkdirSync } from "fs";
 
 const GRAFANA_URL = process.env.GRAFANA_URL || "http://localhost:3000";
 const APP_BASE = process.env.APP_BASE || "http://localhost";
+const OUTPUT_DIR = "e2e-results";
 
 // APAC app ports: 8081, 8082, 8083
 const APAC_APP_PORT = 8081;
@@ -22,6 +26,37 @@ const APAC_APP_PORT = 8081;
 const PIPELINE_SETTLE_MS = 15_000;
 // How long to wait for Grafana panels to render
 const PANEL_RENDER_MS = 5_000;
+
+mkdirSync(OUTPUT_DIR, { recursive: true });
+
+let screenshotIndex = 0;
+
+/**
+ * Take a full-page screenshot and save it with a sequential prefix.
+ */
+async function screenshot(page, label) {
+  screenshotIndex++;
+  const name = `${String(screenshotIndex).padStart(2, "0")}-${label}.png`;
+  const path = `${OUTPUT_DIR}/${name}`;
+  await page.screenshot({ path, fullPage: true });
+  console.log(`  Screenshot: ${path}`);
+}
+
+/**
+ * Dismiss Grafana notification banners that overlay panels.
+ */
+async function dismissBanners(page) {
+  try {
+    const closeButtons = page.locator('[aria-label="Close"]');
+    const count = await closeButtons.count();
+    for (let i = 0; i < count; i++) {
+      await closeButtons.nth(i).click().catch(() => {});
+    }
+  } catch {
+    // No banners
+  }
+  await page.waitForTimeout(500);
+}
 
 /**
  * Make an HTTP request and return parsed JSON.
@@ -141,18 +176,9 @@ const healthPage = await context.newPage();
 const healthUrl = `${GRAFANA_URL}/d/regional-service-health?var-region=apac&var-alert_name=All&from=now-5m&to=now&refresh=off`;
 await healthPage.goto(healthUrl, { waitUntil: "networkidle" });
 await healthPage.waitForTimeout(PANEL_RENDER_MS);
+await dismissBanners(healthPage);
 
-// Dismiss notification banners
-try {
-  const closeButtons = healthPage.locator('[aria-label="Close"]');
-  const count = await closeButtons.count();
-  for (let i = 0; i < count; i++) {
-    await closeButtons.nth(i).click().catch(() => {});
-  }
-} catch {
-  // No banners
-}
-await healthPage.waitForTimeout(1000);
+await screenshot(healthPage, "service-health-firing-alerts");
 
 // Check that the "Firing Alerts" table panel exists
 const firingPanel = healthPage.locator(
@@ -181,16 +207,16 @@ const logsPanel = healthPage.locator("text=Alert Event Logs").first();
 const hasLogsPanel = (await logsPanel.count()) > 0;
 assert(hasLogsPanel, "Alert Event Logs panel is visible in service health dashboard");
 
-// Check that logs are present (log lines have timestamps)
 // Scroll down to ensure logs panel is in view
 await healthPage.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
 await healthPage.waitForTimeout(3000);
+
+await screenshot(healthPage, "service-health-logs-panel");
 
 const logLines = healthPage.locator('[data-testid="logRows"] [data-testid="logRow"]');
 const logLinesAlt = healthPage.locator(".logs-row");
 const logLineCount = (await logLines.count()) + (await logLinesAlt.count());
 
-// Also check for log content by looking for alert-related text in the logs section
 const bodyTextAfterScroll = await healthPage.textContent("body");
 const hasAlertLogContent =
   bodyTextAfterScroll.includes("Alert raised") ||
@@ -204,23 +230,20 @@ assert(
 // Step 5: Drill down — click "View Logs" data link
 console.log("\nStep 5: Testing drill-down to Alert Context logs...");
 
-// Find a table row and check for "View Logs" link
-// In Grafana, data links appear on hover over table cells
 const tableCells = healthPage.locator("table td");
 const cellCount = await tableCells.count();
 
 let drillDownWorked = false;
 if (cellCount > 0) {
-  // Click on the first data cell to trigger data link tooltip
   await tableCells.first().click();
   await healthPage.waitForTimeout(1000);
 
-  // Check if "View Logs" link appeared
+  await screenshot(healthPage, "data-link-tooltip");
+
   const viewLogsLink = healthPage.locator('a:has-text("View Logs")');
   const viewLogsCount = await viewLogsLink.count();
 
   if (viewLogsCount > 0) {
-    // Open in new tab by listening for popup
     const [newPage] = await Promise.all([
       context.waitForEvent("page", { timeout: 5000 }).catch(() => null),
       viewLogsLink.first().click(),
@@ -230,21 +253,23 @@ if (cellCount > 0) {
       await newPage.waitForLoadState("networkidle");
       await newPage.waitForTimeout(PANEL_RENDER_MS);
 
-      // Check the alert-context-logs dashboard loaded
+      await screenshot(newPage, "alert-context-drilldown");
+
       const logsPageText = await newPage.textContent("body");
       const hasLogsDashboard = logsPageText.includes("Alert Event Logs");
       assert(hasLogsDashboard, "Alert Context logs dashboard opened via drill-down");
 
-      // Check for back link
       const backLink = newPage.locator('a:has-text("Back to Service Health")');
       const hasBackLink = (await backLink.count()) > 0;
       assert(hasBackLink, "Back to Service Health link is present (close drill-down)");
 
-      // Navigate back
       if (hasBackLink) {
         await backLink.first().click();
         await newPage.waitForLoadState("networkidle");
         await newPage.waitForTimeout(2000);
+
+        await screenshot(newPage, "back-to-service-health");
+
         const backText = await newPage.textContent("body");
         assert(
           backText.includes("Firing Alerts"),
@@ -259,7 +284,6 @@ if (cellCount > 0) {
 }
 
 if (!drillDownWorked) {
-  // Fallback: directly navigate to alert-context-logs to verify it works
   console.log("  Data link click did not open popup — testing direct navigation...");
   const logsPage = await context.newPage();
   await logsPage.goto(
@@ -268,13 +292,14 @@ if (!drillDownWorked) {
   );
   await logsPage.waitForTimeout(PANEL_RENDER_MS);
 
+  await screenshot(logsPage, "alert-context-direct");
+
   const logsPageText = await logsPage.textContent("body");
   assert(
     logsPageText.includes("Alert Event Logs"),
     "Alert Context logs dashboard loads correctly"
   );
 
-  // Check for back link
   const backLink = logsPage.locator('a:has-text("Back to Service Health")');
   const hasBackLink = (await backLink.count()) > 0;
   assert(hasBackLink, "Back to Service Health link is present (close drill-down)");
@@ -288,14 +313,15 @@ const filteredPage = await context.newPage();
 const filteredUrl = `${GRAFANA_URL}/d/regional-service-health?var-region=apac&var-alert_name=HighLatency&from=now-5m&to=now&refresh=off`;
 await filteredPage.goto(filteredUrl, { waitUntil: "networkidle" });
 await filteredPage.waitForTimeout(PANEL_RENDER_MS);
+await dismissBanners(filteredPage);
+
+await screenshot(filteredPage, "filtered-by-highlatency");
 
 const filteredText = await filteredPage.textContent("body");
 assert(
   filteredText.includes("HighLatency"),
   "Filtered view shows HighLatency alert"
 );
-// DiskPressure should not appear when filtered to HighLatency only
-// (it depends on whether the regex filter works — best-effort check)
 await filteredPage.close();
 
 // Step 7: Global Alert Overview
@@ -306,6 +332,9 @@ await globalPage.goto(
   { waitUntil: "networkidle" }
 );
 await globalPage.waitForTimeout(PANEL_RENDER_MS);
+await dismissBanners(globalPage);
+
+await screenshot(globalPage, "global-overview-with-alerts");
 
 const globalText = await globalPage.textContent("body");
 const hasAPACStat =
@@ -330,7 +359,6 @@ const clear2 = await apiRequest(
 );
 assert(clear2.status === 200, "Clear DiskPressure alert succeeds");
 
-// Verify no active alerts remain on this app
 const postClear = await apiRequest(
   `${APP_BASE}:${APAC_APP_PORT}/alerts`,
   "GET"
@@ -353,9 +381,11 @@ await verifyPage.goto(
   { waitUntil: "networkidle" }
 );
 await verifyPage.waitForTimeout(PANEL_RENDER_MS);
+await dismissBanners(verifyPage);
+
+await screenshot(verifyPage, "after-clear-no-firing");
 
 const verifyText = await verifyPage.textContent("body");
-// After clearing, the table should either show "No data" or not contain the alert names as FIRING
 const alertsCleared =
   !verifyText.includes("FIRING") || verifyText.includes("No data");
 assert(alertsCleared, "Dashboard shows no firing alerts after clearing");
@@ -368,7 +398,8 @@ await browser.close();
 console.log("\n=== Results ===");
 const passed = results.filter((r) => r.passed).length;
 const total = results.length;
-console.log(`${passed}/${total} assertions passed\n`);
+console.log(`${passed}/${total} assertions passed`);
+console.log(`Screenshots saved to ${OUTPUT_DIR}/\n`);
 
 for (const r of results) {
   console.log(`  ${r.passed ? "PASS" : "FAIL"}: ${r.name}`);
