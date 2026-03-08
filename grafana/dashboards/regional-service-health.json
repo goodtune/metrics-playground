@@ -23,7 +23,7 @@
   "panels": [
     {
       "id": 1,
-      "title": "Alert State by Service",
+      "title": "Firing Alerts",
       "type": "table",
       "gridPos": {
         "h": 10,
@@ -41,8 +41,8 @@
             "type": "prometheus",
             "uid": "victoriametrics-${region}"
           },
-          "expr": "lab_alert_active",
-          "legendFormat": "{{service}} / {{component}} / {{instance}}",
+          "expr": "lab_alert_active{alert_name=~\"$alert_name\"} == 1",
+          "legendFormat": "{{service}} / {{alert_name}} / {{severity}}",
           "refId": "A",
           "format": "table",
           "instant": true
@@ -56,8 +56,7 @@
           "mappings": [
             {
               "options": {
-                "0": { "color": "green", "index": 0, "text": "OK" },
-                "1": { "color": "red", "index": 1, "text": "FIRING" }
+                "1": { "color": "red", "index": 0, "text": "FIRING" }
               },
               "type": "value"
             }
@@ -65,10 +64,10 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "green", "value": null },
-              { "color": "red", "value": 1 }
+              { "color": "red", "value": null }
             ]
-          }
+          },
+          "noValue": "No firing alerts"
         },
         "overrides": [
           {
@@ -78,10 +77,69 @@
             ]
           },
           {
+            "matcher": { "id": "byName", "options": "__name__" },
+            "properties": [
+              { "id": "custom.hidden", "value": true }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "source" },
+            "properties": [
+              { "id": "custom.hidden", "value": true }
+            ]
+          },
+          {
             "matcher": { "id": "byName", "options": "Value" },
             "properties": [
               { "id": "displayName", "value": "State" },
-              { "id": "custom.cellOptions", "value": { "type": "color-text" } }
+              { "id": "custom.cellOptions", "value": { "type": "color-text" } },
+              { "id": "custom.width", "value": 80 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "alert_name" },
+            "properties": [
+              { "id": "displayName", "value": "Alert" },
+              { "id": "custom.width", "value": 160 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "severity" },
+            "properties": [
+              { "id": "displayName", "value": "Severity" },
+              { "id": "custom.width", "value": 90 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "service" },
+            "properties": [
+              { "id": "displayName", "value": "Service" },
+              { "id": "custom.width", "value": 120 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "instance" },
+            "properties": [
+              { "id": "displayName", "value": "Instance" }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "alert_id" },
+            "properties": [
+              { "id": "displayName", "value": "Alert ID" },
+              { "id": "custom.width", "value": 280 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "component" },
+            "properties": [
+              { "id": "custom.hidden", "value": true }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "region" },
+            "properties": [
+              { "id": "custom.hidden", "value": true }
             ]
           }
         ]
@@ -96,9 +154,16 @@
           "fields": ""
         },
         "sortBy": [
-          { "displayName": "State", "desc": true }
+          { "displayName": "Alert", "desc": false }
         ]
-      }
+      },
+      "links": [
+        {
+          "title": "View Logs",
+          "url": "/d/alert-context-logs?var-region=${region}&var-alert_name=${__data.fields.alert_name}&${__url_time_range}",
+          "targetBlank": true
+        }
+      ]
     },
     {
       "id": 2,
@@ -120,8 +185,8 @@
             "type": "prometheus",
             "uid": "victoriametrics-${region}"
           },
-          "expr": "lab_alert_active",
-          "legendFormat": "{{alert_name}}",
+          "expr": "lab_alert_active{alert_name=~\"$alert_name\"}",
+          "legendFormat": "{{alert_name}} ({{severity}}) - {{service}}",
           "refId": "A"
         }
       ],
@@ -188,6 +253,42 @@
           "calcs": []
         }
       }
+    },
+    {
+      "id": 3,
+      "title": "Alert Event Logs",
+      "description": "Recent alert event logs for this region. Click 'View Logs' on a table row to open filtered logs in a new tab.",
+      "type": "logs",
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 20
+      },
+      "datasource": {
+        "type": "victoriametrics-logs-datasource",
+        "uid": "victorialogs-${region}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "victoriametrics-logs-datasource",
+            "uid": "victorialogs-${region}"
+          },
+          "expr": "*",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": true,
+        "showCommonLabels": false,
+        "wrapLogMessage": true,
+        "prettifyLogMessage": false,
+        "enableLogDetails": true,
+        "dedupStrategy": "none",
+        "sortOrder": "Descending"
+      }
     }
   ],
   "schemaVersion": 39,
@@ -214,6 +315,33 @@
         "queryValue": "",
         "skipUrlSync": false,
         "type": "custom"
+      },
+      {
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "victoriametrics-${region}"
+        },
+        "definition": "label_values(lab_alert_active, alert_name)",
+        "hide": 0,
+        "includeAll": true,
+        "allValue": ".*",
+        "label": "Alert Name",
+        "multi": false,
+        "name": "alert_name",
+        "query": {
+          "qryType": 1,
+          "query": "label_values(lab_alert_active, alert_name)"
+        },
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
       }
     ]
   },

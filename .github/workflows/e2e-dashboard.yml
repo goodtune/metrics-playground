@@ -1,0 +1,56 @@
+name: E2E Dashboard Test
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-dashboard-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  e2e-dashboard:
+    name: Operator Dashboard E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Start the lab
+        run: docker compose up -d --build --wait
+        timeout-minutes: 10
+
+      - name: Wait for series pre-registration
+        run: |
+          echo "Waiting 30s for pre-registered metric series to be indexed..."
+          sleep 30
+
+          for port in 8081 8082 8083 8084 8085 8086 8087 8088 8089; do
+            echo -n "Checking app on port $port... "
+            curl -sf "http://localhost:$port/health" > /dev/null && echo "OK" || echo "FAIL"
+          done
+
+          echo -n "Checking Grafana... "
+          curl -sf "http://localhost:3000/api/health" > /dev/null && echo "OK" || echo "FAIL"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Playwright
+        run: |
+          npm init -y > /dev/null 2>&1
+          npm install playwright@latest
+          npx playwright install chromium --with-deps
+
+      - name: Run E2E dashboard test
+        run: node scripts/ci/e2e-dashboard.mjs
+
+      - name: Tear down lab
+        if: always()
+        run: docker compose down -v
