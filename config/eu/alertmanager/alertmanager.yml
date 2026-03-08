@@ -20,11 +20,17 @@ receivers:
     webhook_configs:
       - url: http://eu-app-1:8080/webhook
         send_resolved: false
+      - url: http://alert-dashboard:8080/webhook
+        send_resolved: true
   - name: eu-app-2
     webhook_configs:
       - url: http://eu-app-2:8080/webhook
         send_resolved: false
+      - url: http://alert-dashboard:8080/webhook
+        send_resolved: true
   - name: eu-app-3
     webhook_configs:
       - url: http://eu-app-3:8080/webhook
         send_resolved: false
+      - url: http://alert-dashboard:8080/webhook
+        send_resolved: true
