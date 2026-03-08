@@ -68,6 +68,15 @@ jobs:
       - name: Collect metrics from VictoriaMetrics
         run: python3 scripts/ci/collect-metrics.py
 
+      - name: Upload dashboard screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dashboard-screenshots
+          path: perf-results/*.png
+          if-no-files-found: warn
+          retention-days: 90
+
       - name: Fetch previous run results
         if: github.event_name != 'pull_request'
         env:
@@ -81,6 +90,8 @@ jobs:
         run: python3 scripts/ci/fetch-main-baseline.py
 
       - name: Generate summary report
+        env:
+          GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: python3 scripts/ci/generate-report.py >> "$GITHUB_STEP_SUMMARY"
 
       - name: Regression gate (PR only)
@@ -92,7 +103,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: performance-results
-          path: .perf-results/
+          path: perf-results/
+          if-no-files-found: warn
           retention-days: 90
 
       - name: Tear down lab

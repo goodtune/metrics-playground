@@ -2,19 +2,18 @@
 """Generate a GitHub Actions job summary with performance results.
 
 Reads the current run's results, any previous run data, and dashboard
-screenshots. Outputs GitHub-flavored Markdown to stdout for use with
-$GITHUB_STEP_SUMMARY.
+screenshot metadata. Outputs GitHub-flavored Markdown to stdout for use
+with $GITHUB_STEP_SUMMARY.
 
-Dashboard screenshots are embedded as data URIs so they appear inline
-in the job summary without needing external hosting.
+Dashboard screenshots are uploaded as a separate workflow artifact.
+The summary links to the workflow run where they can be downloaded.
 """
 
-import base64
 import json
 import os
 import sys
 
-OUTPUT_DIR = ".perf-results"
+OUTPUT_DIR = "perf-results"
 
 
 def load_json(path: str) -> dict | None:
@@ -22,16 +21,6 @@ def load_json(path: str) -> dict | None:
         with open(path) as f:
             return json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
-        return None
-
-
-def image_to_data_uri(path: str) -> str | None:
-    """Convert a PNG file to a data URI string."""
-    try:
-        with open(path, "rb") as f:
-            data = base64.b64encode(f.read()).decode("ascii")
-        return f"data:image/png;base64,{data}"
-    except FileNotFoundError:
         return None
 
 
@@ -176,23 +165,29 @@ def main():
         ("regional-service-health-us", "Regional Service Health (US)"),
     ]
 
-    has_screenshots = False
-    for name, _ in screenshots:
-        if os.path.exists(os.path.join(OUTPUT_DIR, f"{name}.png")):
-            has_screenshots = True
-            break
+    captured = [name for name, _ in screenshots if os.path.exists(os.path.join(OUTPUT_DIR, f"{name}.png"))]
 
-    if has_screenshots:
+    if captured:
         print("## Dashboard Screenshots")
         print()
+
+        # GitHub job summaries strip data: URIs from <img> tags.
+        # Screenshots are uploaded as the 'dashboard-screenshots' artifact.
+        run_url = os.environ.get("GITHUB_RUN_URL", "")
+        if run_url:
+            print(f"Captured {len(captured)} dashboard screenshot(s). "
+                  f"Download them from the **dashboard-screenshots** artifact "
+                  f"attached to [this workflow run]({run_url}).")
+        else:
+            print(f"Captured {len(captured)} dashboard screenshot(s). "
+                  f"Download the **dashboard-screenshots** artifact from the workflow run.")
+        print()
+        print("| Dashboard | File |")
+        print("|-----------|------|")
         for name, title in screenshots:
-            path = os.path.join(OUTPUT_DIR, f"{name}.png")
-            data_uri = image_to_data_uri(path)
-            if data_uri:
-                print(f"### {title}")
-                print()
-                print(f'<img src="{data_uri}" alt="{title}" width="100%">')
-                print()
+            if name in captured:
+                print(f"| {title} | `{name}.png` |")
+        print()
 
 
 if __name__ == "__main__":

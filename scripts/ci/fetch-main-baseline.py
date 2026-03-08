@@ -11,7 +11,7 @@ import os
 import subprocess
 import sys
 
-OUTPUT_DIR = ".perf-results"
+OUTPUT_DIR = "perf-results"
 WORKFLOW_NAME = "performance.yml"
 BASELINE_COUNT = 3
 

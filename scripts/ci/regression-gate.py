@@ -15,7 +15,7 @@ import json
 import os
 import sys
 
-OUTPUT_DIR = ".perf-results"
+OUTPUT_DIR = "perf-results"
 
 # How much worse than baseline is tolerable
 MEAN_THRESHOLD_FACTOR = 1.5  # 50% above baseline mean

@@ -14,7 +14,7 @@ from urllib.error import URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
-OUTPUT_DIR = ".perf-results"
+OUTPUT_DIR = "perf-results"
 
 # In Docker Compose, VM instances are on the lab-net network.
 # From the host we query via Grafana's datasource proxy API to avoid

@@ -11,7 +11,7 @@ import subprocess
 import sys
 import zipfile
 
-OUTPUT_DIR = ".perf-results"
+OUTPUT_DIR = "perf-results"
 WORKFLOW_NAME = "performance.yml"
 
 

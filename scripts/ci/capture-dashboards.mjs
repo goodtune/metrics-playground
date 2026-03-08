@@ -9,7 +9,7 @@ import { chromium } from "playwright";
 import { mkdirSync } from "fs";
 
 const GRAFANA_URL = "http://localhost:3000";
-const OUTPUT_DIR = ".perf-results";
+const OUTPUT_DIR = "perf-results";
 
 const DASHBOARDS = [
   {
