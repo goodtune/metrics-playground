@@ -262,7 +262,7 @@ def _render_alert_card(a):
     return (
         f'<div class="alert-card sev-{severity}{resolved_cls}" '
         f'data-show="{show}" '
-        f'data-class-selected="$selectedId === {db_id}" '
+        f'data-class:selected="$selectedId === {db_id}" '
         f"data-on:click=\"$selectedId = {db_id}; @post('/alerts/select')\">"
         f'<div class="sev-indicator"></div>'
         f'<div class="alert-body">'
@@ -809,20 +809,20 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Ar
 </div>
 
 <div class="filters">
-  <button class="filter-btn" data-class-active="$filterStatus === ''"
+  <button class="filter-btn" data-class:active="$filterStatus === ''"
           data-on:click="$filterStatus = ''">All</button>
-  <button class="filter-btn" data-class-active="$filterStatus === 'firing'"
+  <button class="filter-btn" data-class:active="$filterStatus === 'firing'"
           data-on:click="$filterStatus = 'firing'">Firing</button>
-  <button class="filter-btn" data-class-active="$filterStatus === 'resolved'"
+  <button class="filter-btn" data-class:active="$filterStatus === 'resolved'"
           data-on:click="$filterStatus = 'resolved'">Resolved</button>
   <span style="color:var(--border)">|</span>
-  <button class="filter-btn" data-class-active="$filterRegion === ''"
+  <button class="filter-btn" data-class:active="$filterRegion === ''"
           data-on:click="$filterRegion = ''">All regions</button>
-  <button class="filter-btn" data-class-active="$filterRegion === 'apac'"
+  <button class="filter-btn" data-class:active="$filterRegion === 'apac'"
           data-on:click="$filterRegion = 'apac'">APAC</button>
-  <button class="filter-btn" data-class-active="$filterRegion === 'eu'"
+  <button class="filter-btn" data-class:active="$filterRegion === 'eu'"
           data-on:click="$filterRegion = 'eu'">EU</button>
-  <button class="filter-btn" data-class-active="$filterRegion === 'us'"
+  <button class="filter-btn" data-class:active="$filterRegion === 'us'"
           data-on:click="$filterRegion = 'us'">US</button>
 </div>
 
