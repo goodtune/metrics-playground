@@ -16,6 +16,7 @@ import http from "http";
 import { mkdirSync } from "fs";
 
 const GRAFANA_URL = process.env.GRAFANA_URL || "http://localhost:3000";
+const DASHBOARD_URL = process.env.DASHBOARD_URL || "http://localhost:8090";
 const APP_BASE = process.env.APP_BASE || "http://localhost";
 const OUTPUT_DIR = "e2e-results";
 
@@ -342,8 +343,85 @@ const hasAPACStat =
 assert(hasAPACStat, "Global overview shows APAC region with data");
 await globalPage.close();
 
-// Step 8: Clear alerts and verify they disappear
-console.log("\nStep 8: Clearing alerts...");
+// Step 8: Operator Dashboard (Datastar SSE)
+console.log("\nStep 8: Checking Operator Dashboard (Datastar SSE)...");
+const opPage = await context.newPage();
+await opPage.goto(DASHBOARD_URL, { waitUntil: "networkidle" });
+// Wait for SSE feed to deliver initial fragments
+await opPage.waitForTimeout(5000);
+
+await screenshot(opPage, "operator-dashboard-live");
+
+const opText = await opPage.textContent("body");
+assert(opText.includes("Alert Dashboard"), "Operator dashboard loaded");
+
+// Alerts should have arrived via Alertmanager webhook → SSE broadcast
+const opHasAlerts =
+  opText.includes("HighLatency") || opText.includes("DiskPressure");
+assert(opHasAlerts, "Operator dashboard shows alerts received via SSE");
+
+// Check stat pills rendered
+const hasPills =
+  opText.includes("critical") && opText.includes("warning");
+assert(hasPills, "Operator dashboard stat pills rendered");
+
+// Click on an alert card to open the detail panel
+const alertCards = opPage.locator(".alert-card");
+const cardCount = await alertCards.count();
+if (cardCount > 0) {
+  await alertCards.first().click();
+  await opPage.waitForTimeout(2000);
+
+  await screenshot(opPage, "operator-detail-panel");
+
+  const detailText = await opPage.textContent("body");
+  // Detail panel should show labels, history, and the Load logs button
+  const hasDetail =
+    detailText.includes("Details") &&
+    detailText.includes("Labels") &&
+    detailText.includes("Load logs");
+  assert(hasDetail, "Operator detail panel shows alert context");
+
+  // Click Load logs
+  const loadLogsBtn = opPage.locator('button:has-text("Load logs")');
+  if ((await loadLogsBtn.count()) > 0) {
+    await loadLogsBtn.first().click();
+    await opPage.waitForTimeout(3000);
+
+    await screenshot(opPage, "operator-logs-loaded");
+
+    const logText = await opPage.locator("#log-container").textContent();
+    // Should show log entries or at minimum no error
+    const logsLoaded =
+      logText.includes("log-line") ||
+      logText.includes("Alert") ||
+      !logText.includes("Failed to load");
+    assert(logsLoaded, "Operator Load logs returns without error");
+  }
+
+  // Close the detail panel via Back button
+  const backBtn = opPage.locator('button:has-text("Back to list")');
+  if ((await backBtn.count()) > 0) {
+    await backBtn.first().click();
+    await opPage.waitForTimeout(1000);
+
+    await screenshot(opPage, "operator-panel-closed");
+
+    // Detail panel should be hidden (selectedId reset to 0)
+    const panelVisible = await opPage
+      .locator("#detail-panel")
+      .isVisible()
+      .catch(() => true);
+    assert(!panelVisible, "Operator detail panel closed via Back button");
+  }
+} else {
+  console.log("  No alert cards found — webhook may not have arrived yet");
+}
+
+await opPage.close();
+
+// Step 9: Clear alerts and verify they disappear
+console.log("\nStep 9: Clearing alerts...");
 
 const clear1 = await apiRequest(
   `${APP_BASE}:${APAC_APP_PORT}/clear`,
@@ -370,7 +448,7 @@ assert(
 
 // Wait for cleared state to propagate
 console.log(
-  `\nStep 9: Waiting ${PIPELINE_SETTLE_MS / 1000}s for cleared state to propagate...`
+  `\nStep 10: Waiting ${PIPELINE_SETTLE_MS / 1000}s for cleared state to propagate...`
 );
 await new Promise((r) => setTimeout(r, PIPELINE_SETTLE_MS));
 
