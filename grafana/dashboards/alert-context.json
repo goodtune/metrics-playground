@@ -19,14 +19,28 @@
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
   "id": null,
-  "links": [],
+  "links": [
+    {
+      "asDropdown": false,
+      "icon": "arrow-left",
+      "includeVars": true,
+      "keepTime": true,
+      "tags": [],
+      "targetBlank": false,
+      "title": "Back to Service Health",
+      "tooltip": "Return to Regional Service Health dashboard",
+      "type": "link",
+      "url": "/d/regional-service-health"
+    }
+  ],
   "panels": [
     {
       "id": 1,
       "title": "Alert Event Logs",
+      "description": "Logs for this region. Expand a log line to inspect fields like alert_name, alert_id, severity, and state. Use the back link above to return.",
       "type": "logs",
       "gridPos": {
-        "h": 20,
+        "h": 24,
         "w": 24,
         "x": 0,
         "y": 0
@@ -81,6 +95,20 @@
         "queryValue": "",
         "skipUrlSync": false,
         "type": "custom"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "",
+          "value": ""
+        },
+        "hide": 0,
+        "label": "Alert Name",
+        "name": "alert_name",
+        "options": [],
+        "query": "",
+        "skipUrlSync": false,
+        "type": "textbox"
       }
     ]
   },

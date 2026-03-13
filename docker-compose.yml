@@ -699,6 +699,52 @@ services:
   # Global Services
   # ==========================================================================
 
+  alert-dashboard-db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=alertdash
+      - POSTGRES_PASSWORD=alertdash
+      - POSTGRES_DB=alertdash
+    volumes:
+      - alert_dashboard_db_data:/var/lib/postgresql/data
+    networks:
+      - lab-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U alertdash"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  alert-dashboard:
+    build: ./apps/alert-dashboard
+    environment:
+      - DATABASE_URL=postgresql://alertdash:alertdash@alert-dashboard-db:5432/alertdash
+      - VM_APAC=http://apac-victoriametrics:8428
+      - VM_EU=http://eu-victoriametrics:8428
+      - VM_US=http://us-victoriametrics:8428
+      - VL_APAC=http://apac-victorialogs:9428
+      - VL_EU=http://eu-victorialogs:9428
+      - VL_US=http://us-victorialogs:9428
+    ports:
+      - "8090:8080"
+    depends_on:
+      - alert-dashboard-db
+      - apac-victoriametrics
+      - eu-victoriametrics
+      - us-victoriametrics
+      - apac-victorialogs
+      - eu-victorialogs
+      - us-victorialogs
+    networks:
+      - lab-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
   grafana:
     image: grafana/grafana:11.4.0
     environment:
@@ -772,6 +818,9 @@ volumes:
   apac_alertmanager_data:
   eu_alertmanager_data:
   us_alertmanager_data:
+
+  # Alert Dashboard
+  alert_dashboard_db_data:
 
   # Grafana
   grafana_data:
