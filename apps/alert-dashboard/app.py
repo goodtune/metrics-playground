@@ -482,14 +482,22 @@ def _render_logs(alert_db_id):
                 '</div>'
             )
 
-        entries = "".join(
-            f'<div class="log-line">'
-            f'<span class="log-time">{_esc(l.get("_time", ""))}</span>'
-            f'<span class="log-msg">'
-            f'{_esc(l.get("_msg") or l.get("body") or json.dumps(l))}</span>'
-            f'</div>'
-            for l in lines
-        )
+        context_keys = ("reason", "alert_message", "correlation_id", "state")
+        entries = ""
+        for l in lines:
+            ctx = "".join(
+                f'<span style="color:var(--info);margin-left:.5rem">'
+                f'{_esc(k)}={_esc(l[k])}</span>'
+                for k in context_keys if l.get(k)
+            )
+            entries += (
+                f'<div class="log-line">'
+                f'<span class="log-time">{_esc(l.get("_time", ""))}</span>'
+                f'<span class="log-msg">'
+                f'{_esc(l.get("_msg") or l.get("body") or json.dumps(l))}</span>'
+                f'{ctx}'
+                f'</div>'
+            )
         return f'<div id="log-container"><div class="log-entries">{entries}</div></div>'
 
     except Exception as exc:
