@@ -371,7 +371,7 @@ while (Date.now() - pollStart < pollTimeout) {
 }
 
 const opPage = await context.newPage();
-await opPage.goto(DASHBOARD_URL, { waitUntil: "networkidle" });
+await opPage.goto(DASHBOARD_URL, { waitUntil: "domcontentloaded" });
 // Give SSE feed time to deliver the initial fragments
 await opPage.waitForTimeout(5000);
 

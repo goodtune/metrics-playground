@@ -125,6 +125,20 @@ raised_gauge = meter.create_gauge(
     description="Unix timestamp of alert raise for event-based alerts",
 )
 
+# Pre-register lab_alert_raised series (value 0 = never raised) so
+# VictoriaMetrics indexes them at startup, avoiding the 5-10s new-series
+# indexing delay on first raise.  See docs/performance.md §1.
+for _name in ALERT_NAMES:
+    for _sev in SEVERITIES:
+        _aid = _make_alert_id(_name, _sev)
+        raised_gauge.set(0, attributes={
+            "alert_name": _name,
+            "service": SERVICE_NAME,
+            "severity": _sev,
+            "region": REGION,
+            "alert_id": _aid,
+        })
+
 # ---------------------------------------------------------------------------
 # Process metrics
 # ---------------------------------------------------------------------------

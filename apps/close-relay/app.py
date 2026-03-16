@@ -46,6 +46,29 @@ close_gauge = meter.create_gauge(
     description="Unix timestamp of operator close for event-based alerts",
 )
 
+# Pre-register lab_alert_closed series (value 1 = "considered closed by
+# default") so VictoriaMetrics indexes them at startup.  Value 1 is always
+# less than a real Unix timestamp, so pre-registered entries suppress the
+# vmalert rule (1 >= 0 for pre-registered raised) without causing false
+# negatives on real raises (1 < real_timestamp).
+ALERT_NAMES = [
+    "HighLatency", "DiskPressure", "MemoryExhausted", "CPUThrottle",
+    "ConnectionPoolFull", "QueueBacklog", "CertExpiring", "ErrorRateSpike",
+    "SlowQueries", "ReplicationLag",
+]
+SEVERITIES = ["critical", "warning", "info"]
+SERVICES = [f"{REGION}-app-{i}" for i in (1, 2, 3)]
+
+for _name in ALERT_NAMES:
+    for _sev in SEVERITIES:
+        for _svc in SERVICES:
+            close_gauge.set(1, attributes={
+                "alert_name": _name,
+                "service": _svc,
+                "severity": _sev,
+                "region": REGION,
+            })
+
 
 @app.route("/close", methods=["POST"])
 def close_alert():

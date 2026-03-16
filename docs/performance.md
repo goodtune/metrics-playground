@@ -55,7 +55,7 @@ The gap between theoretical (1–3s) and observed (3–4s median) is explained b
 
 **Discovery**: Raising the same alert twice showed the first raise took ~8s round-trip while re-raising the identical series took ~0.4s. The delay was entirely in new-series indexing, not data ingestion.
 
-**Solution**: All 30 combinations of `(alert_name × severity)` are pre-registered at application startup with gauge value `0`. When an alert is raised, the gauge toggles from `0` to `1` on an _existing_ series — no new indexing required.
+**Solution**: All 30 combinations of `(alert_name × severity)` are pre-registered at application startup. The `lab_alert_active` and `lab_alert_raised` gauges are initialised with value `0` by the workloads. The `lab_alert_closed` gauges are initialised with value `1` (always less than a real Unix timestamp) by the close-relay services. When an alert is raised or closed, the gauge updates an _existing_ series — no new indexing required.
 
 ```python
 ALERT_NAMES = [
@@ -146,14 +146,23 @@ command:
   - "-rule.evalDelay=0s"
 ```
 
-The rule itself uses `for: 0s` to fire immediately without a pending period:
+The `EventAlertActive` rule uses `for: 0s` to fire immediately without a pending period:
 
 ```yaml
 rules:
-  - alert: LabAlertActive
-    expr: max by (...) (lab_alert_active == 1)
+  - alert: EventAlertActive
+    expr: |
+      last_over_time(lab_alert_raised[24h])
+        unless on(alert_name, service, severity)
+      (
+        last_over_time(lab_alert_closed[24h])
+          >= on(alert_name, service, severity)
+        last_over_time(lab_alert_raised[24h])
+      )
     for: 0s
 ```
+
+This range query is heavier than the original instant check (`lab_alert_active == 1`), so pre-registration of both `lab_alert_raised` and `lab_alert_closed` series is critical to avoid compounding query cost with new-series indexing delays.
 
 ### 6. Alertmanager: per-alert grouping
 
