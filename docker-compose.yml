@@ -726,6 +726,9 @@ services:
       - VL_APAC=http://apac-victorialogs:9428
       - VL_EU=http://eu-victorialogs:9428
       - VL_US=http://us-victorialogs:9428
+      - CLOSE_RELAY_APAC=http://apac-close-relay:8080
+      - CLOSE_RELAY_EU=http://eu-close-relay:8080
+      - CLOSE_RELAY_US=http://us-close-relay:8080
     ports:
       - "8090:8080"
     depends_on:
@@ -744,6 +747,54 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
+
+  apac-close-relay:
+    build: ./apps/close-relay
+    restart: unless-stopped
+    environment:
+      REGION: apac
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://apac-otel-1:4318
+    depends_on:
+      - apac-otel-1
+    networks:
+      - lab-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  eu-close-relay:
+    build: ./apps/close-relay
+    restart: unless-stopped
+    environment:
+      REGION: eu
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://eu-otel-1:4318
+    depends_on:
+      - eu-otel-1
+    networks:
+      - lab-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  us-close-relay:
+    build: ./apps/close-relay
+    restart: unless-stopped
+    environment:
+      REGION: us
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://us-otel-1:4318
+    depends_on:
+      - us-otel-1
+    networks:
+      - lab-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
   grafana:
     image: grafana/grafana:11.4.0
