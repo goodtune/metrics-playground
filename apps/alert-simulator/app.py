@@ -120,6 +120,25 @@ meter.create_observable_gauge(
     callbacks=[_observe_alerts],
 )
 
+raised_gauge = meter.create_gauge(
+    name="lab_alert_raised",
+    description="Unix timestamp of alert raise for event-based alerts",
+)
+
+# Pre-register lab_alert_raised series (value 0 = never raised) so
+# VictoriaMetrics indexes them at startup, avoiding the 5-10s new-series
+# indexing delay on first raise.  See docs/performance.md §1.
+for _name in ALERT_NAMES:
+    for _sev in SEVERITIES:
+        _aid = _make_alert_id(_name, _sev)
+        raised_gauge.set(0, attributes={
+            "alert_name": _name,
+            "service": SERVICE_NAME,
+            "severity": _sev,
+            "region": REGION,
+            "alert_id": _aid,
+        })
+
 # ---------------------------------------------------------------------------
 # Process metrics
 # ---------------------------------------------------------------------------
@@ -263,9 +282,29 @@ def _do_raise(alert_name, severity, reason, message, correlation_id):
     if alert_id in active_alerts:
         # Already active with this name+severity — update event_time for re-raise
         active_alerts[alert_id]["event_time"] = time.time()
+        raised_gauge.set(
+            time.time(),
+            attributes={
+                "alert_name": alert_name,
+                "service": SERVICE_NAME,
+                "severity": severity,
+                "region": REGION,
+                "alert_id": alert_id,
+            },
+        )
         return active_alerts[alert_id]
 
     alert_gauge_values[key] = 1
+    raised_gauge.set(
+        time.time(),
+        attributes={
+            "alert_name": alert_name,
+            "service": SERVICE_NAME,
+            "severity": severity,
+            "region": REGION,
+            "alert_id": alert_id,
+        },
+    )
     http_request_counter.add(1, {"method": "POST", "endpoint": "/raise"})
 
     alert_record = {
@@ -366,12 +405,12 @@ _INDEX_TEMPLATE = """\
   </div>
 
   <div class="card"
-       data-signals="{alertName: 'HighLatency', severity: 'warning', message: '', reason: '', correlationId: ''}">
+       data-signals="{alertname: '', severity: 'warning', message: '', reason: '', correlationid: ''}">
     <h2>Raise Alert</h2>
     <div class="row">
       <div>
         <label>Alert Name</label>
-        <input data-bind:alertName />
+        <input data-bind:alertname />
       </div>
       <div>
         <label>Severity</label>
@@ -386,14 +425,14 @@ _INDEX_TEMPLATE = """\
     <input data-bind:message placeholder="optional">
     <div class="row">
       <div><label>Reason</label><input data-bind:reason placeholder="optional"></div>
-      <div><label>Correlation ID</label><input data-bind:correlationId placeholder="optional"></div>
+      <div><label>Correlation ID</label><input data-bind:correlationid placeholder="optional"></div>
     </div>
     <div class="actions">
       <button class="btn-raise" data-on:click="@post('/alerts/raise')">Raise Alert</button>
     </div>
   </div>
 
-  <div class="card" data-on:load="@get('/alerts/feed')">
+  <div class="card" data-on-intersect="@get('/alerts/feed')">
     <h2>Active Alerts<span id="alerts-count"></span></h2>
     <div id="alerts-list"><div class="empty">Loading...</div></div>
     <div class="actions" style="margin-top:.75rem">
@@ -444,11 +483,11 @@ def ds_raise_alert():
     """Datastar action: raise an alert and return updated fragment."""
     data = request.get_json(force=True, silent=True) or {}
     _do_raise(
-        alert_name=data.get("alertName") or data.get("alert_name") or "TestAlert",
+        alert_name=data.get("alertname") or data.get("alert_name") or "TestAlert",
         severity=data.get("severity", "warning"),
         reason=data.get("reason", ""),
         message=data.get("message", ""),
-        correlation_id=data.get("correlationId") or data.get("correlation_id") or "",
+        correlation_id=data.get("correlationid") or data.get("correlation_id") or "",
     )
     return _sse_response(_render_alerts_fragment())
 

@@ -1,10 +1,10 @@
 # Metrics Playground
 
-A local, Docker Compose-based lab for evaluating event-based alerting with OpenTelemetry, VictoriaMetrics, VictoriaLogs, vmalert, Alertmanager, and Grafana.
+A local, Docker Compose-based lab for evaluating event-based alerting with OpenTelemetry, VictoriaMetrics, VictoriaLogs, vmalert, Alertmanager, Grafana, and an operator Alert Dashboard.
 
 ## Overview
 
-This lab models a three-region (APAC, EU, US) observability stack with **34 services**. Each region has 3 workloads, 3 local OTEL collectors, a vmagent, VictoriaMetrics, VictoriaLogs, vmalert, and Alertmanager. A single Grafana instance provides the global view.
+This lab models a three-region (APAC, EU, US) observability stack with **39 services**. Each region has 3 workloads, 3 local OTEL collectors, a vmagent, VictoriaMetrics, VictoriaLogs, vmalert, and Alertmanager. Global services include Grafana for dashboarding and an Alert Dashboard backed by PostgreSQL for operational alert management with real-time SSE updates via Datastar.
 
 One event produces two signals:
 
@@ -13,113 +13,33 @@ One event produces two signals:
 
 ## Architecture
 
+### Regional Architecture (identical per region)
+
 ```mermaid
 flowchart LR
-  subgraph APAC[APAC Region]
-    subgraph APACW[Workloads]
-      A1[apac-app-1]
-      A2[apac-app-2]
-      A3[apac-app-3]
-    end
+  W[3 Workloads] --> C[3 OTEL Collectors]
+  C -->|OTLP metrics| VA[vmagent] -->|remote_write| VM[VictoriaMetrics]
+  C -->|OTLP logs| VL[VictoriaLogs]
+  VAL[vmalert] -->|query rules| VM
+  VAL -->|active alerts| AM[Alertmanager]
+  CR[Close Relay] -->|OTLP metrics| C
+```
 
-    subgraph APACC[Local OTEL Collectors]
-      AC1[apac-otel-1]
-      AC2[apac-otel-2]
-      AC3[apac-otel-3]
-    end
+### Global Integration
 
-    AVM[apac-vmagent]
-    AVMS[apac-victoriametrics]
-    AVLS[apac-victorialogs]
-    AVAL[apac-vmalert]
-    AAM[apac-alertmanager]
-
-    A1 --> AC1
-    A2 --> AC2
-    A3 --> AC3
-    AC1 -->|OTLP metrics| AVM
-    AC2 -->|OTLP metrics| AVM
-    AC3 -->|OTLP metrics| AVM
-    AC1 -->|OTLP logs| AVLS
-    AC2 -->|OTLP logs| AVLS
-    AC3 -->|OTLP logs| AVLS
-    AVM -->|remote_write| AVMS
-    AVAL -->|query rules| AVMS
-    AVAL -->|active alerts| AAM
-  end
-
-  subgraph EU[Europe Region]
-    subgraph EUW[Workloads]
-      E1[eu-app-1]
-      E2[eu-app-2]
-      E3[eu-app-3]
-    end
-
-    subgraph EUC[Local OTEL Collectors]
-      EC1[eu-otel-1]
-      EC2[eu-otel-2]
-      EC3[eu-otel-3]
-    end
-
-    EVM[eu-vmagent]
-    EVMS[eu-victoriametrics]
-    EVLS[eu-victorialogs]
-    EVAL[eu-vmalert]
-    EAM[eu-alertmanager]
-
-    E1 --> EC1
-    E2 --> EC2
-    E3 --> EC3
-    EC1 -->|OTLP metrics| EVM
-    EC2 -->|OTLP metrics| EVM
-    EC3 -->|OTLP metrics| EVM
-    EC1 -->|OTLP logs| EVLS
-    EC2 -->|OTLP logs| EVLS
-    EC3 -->|OTLP logs| EVLS
-    EVM -->|remote_write| EVMS
-    EVAL -->|query rules| EVMS
-    EVAL -->|active alerts| EAM
-  end
-
-  subgraph US[US Region]
-    subgraph USW[Workloads]
-      U1[us-app-1]
-      U2[us-app-2]
-      U3[us-app-3]
-    end
-
-    subgraph USC[Local OTEL Collectors]
-      UC1[us-otel-1]
-      UC2[us-otel-2]
-      UC3[us-otel-3]
-    end
-
-    UVM[us-vmagent]
-    UVMS[us-victoriametrics]
-    UVLS[us-victorialogs]
-    UVAL[us-vmalert]
-    UAM[us-alertmanager]
-
-    U1 --> UC1
-    U2 --> UC2
-    U3 --> UC3
-    UC1 -->|OTLP metrics| UVM
-    UC2 -->|OTLP metrics| UVM
-    UC3 -->|OTLP metrics| UVM
-    UC1 -->|OTLP logs| UVLS
-    UC2 -->|OTLP logs| UVLS
-    UC3 -->|OTLP logs| UVLS
-    UVM -->|remote_write| UVMS
-    UVAL -->|query rules| UVMS
-    UVAL -->|active alerts| UAM
-  end
-
-  AVMS -->|Prometheus datasource| G[Grafana Global View]
-  EVMS -->|Prometheus datasource| G
-  UVMS -->|Prometheus datasource| G
-  AVLS -->|VictoriaLogs datasource| G
-  EVLS -->|VictoriaLogs datasource| G
-  UVLS -->|VictoriaLogs datasource| G
+```mermaid
+flowchart LR
+  APAC[APAC Region] -->|datasources| G[Grafana]
+  EU[Europe Region] -->|datasources| G
+  US[US Region] -->|datasources| G
+  APAC -->|webhook| AD[Alert Dashboard]
+  EU -->|webhook| AD
+  US -->|webhook| AD
+  DB[(PostgreSQL)] --- AD
+  AD -->|SSE live updates| Browser((Operator Browser))
+  AD -->|close| APAC
+  AD -->|close| EU
+  AD -->|close| US
 ```
 
 ## Quick Start
@@ -156,6 +76,7 @@ curl -X POST http://localhost:8081/clear \
 | 8081–8083 | APAC workloads |
 | 8084–8086 | EU workloads |
 | 8087–8089 | US workloads |
+| 8090 | Alert Dashboard |
 | 9093 | APAC Alertmanager |
 | 9094 | EU Alertmanager |
 | 9095 | US Alertmanager |

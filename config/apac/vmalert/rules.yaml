@@ -2,11 +2,18 @@ groups:
   - name: lab-alerts
     interval: 1s
     rules:
-      - alert: LabAlertActive
-        expr: max by (region, service, component, instance, alert_id, alert_name, severity) (lab_alert_active == 1)
+      - alert: EventAlertActive
+        expr: |
+          last_over_time(lab_alert_raised[24h])
+            unless on(alert_name, service, severity)
+          (
+            last_over_time(lab_alert_closed[24h])
+              >= on(alert_name, service, severity)
+            last_over_time(lab_alert_raised[24h])
+          )
         for: 0s
         labels:
           routing: regional
         annotations:
-          summary: "{{ $labels.alert_name }} active on {{ $labels.instance }}"
-          description: "Alert {{ $labels.alert_id }} is currently active in {{ $labels.region }}"
+          summary: "{{ $labels.alert_name }} event on {{ $labels.service }}"
+          description: "Event alert {{ $labels.alert_name }} raised in {{ $labels.region }}, no operator close recorded"
