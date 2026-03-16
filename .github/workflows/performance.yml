@@ -1,8 +1,6 @@
 name: Performance Test
 
 on:
-  schedule:
-    - cron: "0 * * * *" # every hour
   pull_request:
     branches: [main]
     paths:
