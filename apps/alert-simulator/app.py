@@ -275,6 +275,7 @@ def _do_raise(alert_name, severity, reason, message, correlation_id):
                 "service": SERVICE_NAME,
                 "severity": severity,
                 "region": REGION,
+                "alert_id": alert_id,
             },
         )
         return active_alerts[alert_id]
@@ -287,6 +288,7 @@ def _do_raise(alert_name, severity, reason, message, correlation_id):
             "service": SERVICE_NAME,
             "severity": severity,
             "region": REGION,
+            "alert_id": alert_id,
         },
     )
     http_request_counter.add(1, {"method": "POST", "endpoint": "/raise"})
@@ -389,12 +391,12 @@ _INDEX_TEMPLATE = """\
   </div>
 
   <div class="card"
-       data-signals="{alertName: 'HighLatency', severity: 'warning', message: '', reason: '', correlationId: ''}">
+       data-signals="{alertname: '', severity: 'warning', message: '', reason: '', correlationid: ''}">
     <h2>Raise Alert</h2>
     <div class="row">
       <div>
         <label>Alert Name</label>
-        <input data-bind:alertName />
+        <input data-bind:alertname />
       </div>
       <div>
         <label>Severity</label>
@@ -409,7 +411,7 @@ _INDEX_TEMPLATE = """\
     <input data-bind:message placeholder="optional">
     <div class="row">
       <div><label>Reason</label><input data-bind:reason placeholder="optional"></div>
-      <div><label>Correlation ID</label><input data-bind:correlationId placeholder="optional"></div>
+      <div><label>Correlation ID</label><input data-bind:correlationid placeholder="optional"></div>
     </div>
     <div class="actions">
       <button class="btn-raise" data-on:click="@post('/alerts/raise')">Raise Alert</button>
@@ -467,11 +469,11 @@ def ds_raise_alert():
     """Datastar action: raise an alert and return updated fragment."""
     data = request.get_json(force=True, silent=True) or {}
     _do_raise(
-        alert_name=data.get("alertName") or data.get("alert_name") or "TestAlert",
+        alert_name=data.get("alertname") or data.get("alert_name") or "TestAlert",
         severity=data.get("severity", "warning"),
         reason=data.get("reason", ""),
         message=data.get("message", ""),
-        correlation_id=data.get("correlationId") or data.get("correlation_id") or "",
+        correlation_id=data.get("correlationid") or data.get("correlation_id") or "",
     )
     return _sse_response(_render_alerts_fragment())
 
