@@ -445,39 +445,44 @@ if (cardCount > 0) {
 
 await opPage.close();
 
-// Step 9: Clear alerts and verify they disappear
-console.log("\nStep 9: Clearing alerts...");
+// Step 9: Close alerts via the operator dashboard (routes through Close Relay)
+console.log("\nStep 9: Closing alerts via dashboard Close Relay...");
 
-const clear1 = await apiRequest(
-  `${APP_BASE}:${APAC_APP_PORT}/clear`,
-  "POST",
-  { alert_id: alert1.body.alert_id, reason: "e2e-test-cleanup" }
-);
-assert(clear1.status === 200, "Clear HighLatency alert succeeds");
+// Find firing alerts in the dashboard DB
+const firingResp = await apiRequest(`${DASHBOARD_URL}/api/alerts?status=firing`, "GET");
+const firingAlerts = Array.isArray(firingResp.body) ? firingResp.body : [];
+console.log(`  Found ${firingAlerts.length} firing alert(s) in dashboard`);
 
-const clear2 = await apiRequest(
-  `${APP_BASE}:${APAC_APP_PORT}/clear`,
-  "POST",
-  { alert_id: alert2.body.alert_id, reason: "e2e-test-cleanup" }
-);
-assert(clear2.status === 200, "Clear DiskPressure alert succeeds");
+// Close each via the dashboard API (which calls the regional Close Relay)
+for (const a of firingAlerts) {
+  const closeResp = await apiRequest(`${DASHBOARD_URL}/alerts/${a.id}/close`, "POST");
+  console.log(`  Closed alert ${a.alert_name} (db_id=${a.id}): ${closeResp.status}`);
+}
+assert(firingAlerts.length > 0, "Had firing alerts to close via Close Relay");
 
-const postClear = await apiRequest(
-  `${APP_BASE}:${APAC_APP_PORT}/alerts`,
-  "GET"
-);
-assert(
-  Object.keys(postClear.body).length === 0,
-  "No active alerts remain after clearing"
-);
+// Poll until the dashboard shows no firing alerts
+console.log("  Waiting for Close Relay to resolve alerts...");
+const closeStart = Date.now();
+let firingCount = firingAlerts.length;
+while (Date.now() - closeStart < 60_000) {
+  const resp = await apiRequest(`${DASHBOARD_URL}/api/alerts?status=firing`, "GET");
+  firingCount = Array.isArray(resp.body) ? resp.body.length : 0;
+  if (firingCount === 0) break;
+  await new Promise((r) => setTimeout(r, 3000));
+}
+assert(firingCount === 0, "All alerts resolved after Close Relay close");
 
-// Wait for cleared state to propagate
+// Clean up workload internal state (best-effort, not part of the close flow)
+await apiRequest(`${APP_BASE}:${APAC_APP_PORT}/clear`, "POST", { alert_id: alert1.body.alert_id });
+await apiRequest(`${APP_BASE}:${APAC_APP_PORT}/clear`, "POST", { alert_id: alert2.body.alert_id });
+
+// Wait for resolved state to propagate to Grafana
 console.log(
-  `\nStep 10: Waiting ${PIPELINE_SETTLE_MS / 1000}s for cleared state to propagate...`
+  `\nStep 10: Waiting ${PIPELINE_SETTLE_MS / 1000}s for resolved state to propagate...`
 );
 await new Promise((r) => setTimeout(r, PIPELINE_SETTLE_MS));
 
-// Check dashboard shows no firing alerts
+// Check Grafana shows no firing alerts
 const verifyPage = await context.newPage();
 await verifyPage.goto(
   `${GRAFANA_URL}/d/regional-service-health?var-region=apac&var-alert_name=All&from=now-5m&to=now&refresh=off`,
@@ -491,7 +496,7 @@ await screenshot(verifyPage, "after-clear-no-firing");
 const verifyText = await verifyPage.textContent("body");
 const alertsCleared =
   !verifyText.includes("FIRING") || verifyText.includes("No data");
-assert(alertsCleared, "Dashboard shows no firing alerts after clearing");
+assert(alertsCleared, "Grafana shows no firing alerts after Close Relay close");
 await verifyPage.close();
 
 // Cleanup
