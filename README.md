@@ -4,7 +4,7 @@ A local, Docker Compose-based lab for evaluating event-based alerting with OpenT
 
 ## Overview
 
-This lab models a three-region (APAC, EU, US) observability stack with **36 services**. Each region has 3 workloads, 3 local OTEL collectors, a vmagent, VictoriaMetrics, VictoriaLogs, vmalert, and Alertmanager. Global services include Grafana for dashboarding and an Alert Dashboard backed by PostgreSQL for operational alert management with real-time SSE updates via Datastar.
+This lab models a three-region (APAC, EU, US) observability stack with **39 services**. Each region has 3 workloads, 3 local OTEL collectors, a vmagent, VictoriaMetrics, VictoriaLogs, vmalert, and Alertmanager. Global services include Grafana for dashboarding and an Alert Dashboard backed by PostgreSQL for operational alert management with real-time SSE updates via Datastar.
 
 One event produces two signals:
 
@@ -22,6 +22,7 @@ flowchart LR
   C -->|OTLP logs| VL[VictoriaLogs]
   VAL[vmalert] -->|query rules| VM
   VAL -->|active alerts| AM[Alertmanager]
+  CR[Close Relay] -->|OTLP metrics| C
 ```
 
 ### Global Integration
@@ -36,6 +37,9 @@ flowchart LR
   US -->|webhook| AD
   DB[(PostgreSQL)] --- AD
   AD -->|SSE live updates| Browser((Operator Browser))
+  AD -->|close| APAC
+  AD -->|close| EU
+  AD -->|close| US
 ```
 
 ## Quick Start
