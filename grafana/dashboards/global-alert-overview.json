@@ -116,7 +116,7 @@
             "type": "prometheus",
             "uid": "victoriametrics-apac"
           },
-          "expr": "count by (severity) (last_over_time(lab_alert_raised[24h]) unless on(alert_name, service, severity) (last_over_time(lab_alert_closed[24h]) >= on(alert_name, service, severity) last_over_time(lab_alert_raised[24h]))) or vector(0)",
+          "expr": "count by (alert_name, severity) (last_over_time(lab_alert_raised[24h]) unless on(alert_name, service, severity) (last_over_time(lab_alert_closed[24h]) >= on(alert_name, service, severity) last_over_time(lab_alert_raised[24h]))) or vector(0)",
           "legendFormat": "APAC - {{severity}}",
           "refId": "A",
           "format": "table",
@@ -127,7 +127,7 @@
             "type": "prometheus",
             "uid": "victoriametrics-eu"
           },
-          "expr": "count by (severity) (last_over_time(lab_alert_raised[24h]) unless on(alert_name, service, severity) (last_over_time(lab_alert_closed[24h]) >= on(alert_name, service, severity) last_over_time(lab_alert_raised[24h]))) or vector(0)",
+          "expr": "count by (alert_name, severity) (last_over_time(lab_alert_raised[24h]) unless on(alert_name, service, severity) (last_over_time(lab_alert_closed[24h]) >= on(alert_name, service, severity) last_over_time(lab_alert_raised[24h]))) or vector(0)",
           "legendFormat": "EU - {{severity}}",
           "refId": "B",
           "format": "table",
@@ -138,7 +138,7 @@
             "type": "prometheus",
             "uid": "victoriametrics-us"
           },
-          "expr": "count by (severity) (last_over_time(lab_alert_raised[24h]) unless on(alert_name, service, severity) (last_over_time(lab_alert_closed[24h]) >= on(alert_name, service, severity) last_over_time(lab_alert_raised[24h]))) or vector(0)",
+          "expr": "count by (alert_name, severity) (last_over_time(lab_alert_raised[24h]) unless on(alert_name, service, severity) (last_over_time(lab_alert_closed[24h]) >= on(alert_name, service, severity) last_over_time(lab_alert_raised[24h]))) or vector(0)",
           "legendFormat": "US - {{severity}}",
           "refId": "C",
           "format": "table",
@@ -199,7 +199,7 @@
             "type": "prometheus",
             "uid": "victoriametrics-apac"
           },
-          "expr": "count by (service, region) (last_over_time(lab_alert_raised[24h]) unless on(alert_name, service, severity) (last_over_time(lab_alert_closed[24h]) >= on(alert_name, service, severity) last_over_time(lab_alert_raised[24h]))) or vector(0)",
+          "expr": "count by (alert_name, service, region) (last_over_time(lab_alert_raised[24h]) unless on(alert_name, service, severity) (last_over_time(lab_alert_closed[24h]) >= on(alert_name, service, severity) last_over_time(lab_alert_raised[24h]))) or vector(0)",
           "legendFormat": "",
           "refId": "A",
           "format": "table",
@@ -210,7 +210,7 @@
             "type": "prometheus",
             "uid": "victoriametrics-eu"
           },
-          "expr": "count by (service, region) (last_over_time(lab_alert_raised[24h]) unless on(alert_name, service, severity) (last_over_time(lab_alert_closed[24h]) >= on(alert_name, service, severity) last_over_time(lab_alert_raised[24h]))) or vector(0)",
+          "expr": "count by (alert_name, service, region) (last_over_time(lab_alert_raised[24h]) unless on(alert_name, service, severity) (last_over_time(lab_alert_closed[24h]) >= on(alert_name, service, severity) last_over_time(lab_alert_raised[24h]))) or vector(0)",
           "legendFormat": "",
           "refId": "B",
           "format": "table",
@@ -221,7 +221,7 @@
             "type": "prometheus",
             "uid": "victoriametrics-us"
           },
-          "expr": "count by (service, region) (last_over_time(lab_alert_raised[24h]) unless on(alert_name, service, severity) (last_over_time(lab_alert_closed[24h]) >= on(alert_name, service, severity) last_over_time(lab_alert_raised[24h]))) or vector(0)",
+          "expr": "count by (alert_name, service, region) (last_over_time(lab_alert_raised[24h]) unless on(alert_name, service, severity) (last_over_time(lab_alert_closed[24h]) >= on(alert_name, service, severity) last_over_time(lab_alert_raised[24h]))) or vector(0)",
           "legendFormat": "",
           "refId": "C",
           "format": "table",
