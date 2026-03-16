@@ -407,7 +407,7 @@ _INDEX_TEMPLATE = """\
     </div>
   </div>
 
-  <div class="card" data-on:load="@get('/alerts/feed')">
+  <div class="card" data-on-intersect="@get('/alerts/feed')">
     <h2>Active Alerts<span id="alerts-count"></span></h2>
     <div id="alerts-list"><div class="empty">Loading...</div></div>
     <div class="actions" style="margin-top:.75rem">

@@ -156,7 +156,7 @@ def _broadcast():
                 q.put_nowait(event)
             except queue.Full:
                 dead.add(q)
-        _subscribers -= dead
+        _subscribers.difference_update(dead)
 
 
 # ---------------------------------------------------------------------------
@@ -834,7 +834,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Ar
           data-on:click="$filterRegion = 'us'">US</button>
 </div>
 
-<div class="main" data-on:load="@get('/feed')">
+<div class="main" data-on-intersect="@get('/feed')">
   <div class="alert-list" id="alert-list">
     <div class="empty-state">Connecting to live feed&hellip;</div>
   </div>
