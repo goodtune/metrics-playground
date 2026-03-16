@@ -268,6 +268,15 @@ def _do_raise(alert_name, severity, reason, message, correlation_id):
     if alert_id in active_alerts:
         # Already active with this name+severity — update event_time for re-raise
         active_alerts[alert_id]["event_time"] = time.time()
+        raised_gauge.set(
+            time.time(),
+            attributes={
+                "alert_name": alert_name,
+                "service": SERVICE_NAME,
+                "severity": severity,
+                "region": REGION,
+            },
+        )
         return active_alerts[alert_id]
 
     alert_gauge_values[key] = 1

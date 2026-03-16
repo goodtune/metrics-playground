@@ -41,7 +41,7 @@
             "type": "prometheus",
             "uid": "victoriametrics-${region}"
           },
-          "expr": "lab_alert_active{alert_name=~\"$alert_name\"} == 1",
+          "expr": "last_over_time(lab_alert_raised{alert_name=~\"$alert_name\"}[24h]) unless on(alert_name, service, severity) (last_over_time(lab_alert_closed{alert_name=~\"$alert_name\"}[24h]) >= on(alert_name, service, severity) last_over_time(lab_alert_raised{alert_name=~\"$alert_name\"}[24h]))",
           "legendFormat": "{{service}} / {{alert_name}} / {{severity}}",
           "refId": "A",
           "format": "table",
@@ -185,7 +185,7 @@
             "type": "prometheus",
             "uid": "victoriametrics-${region}"
           },
-          "expr": "lab_alert_active{alert_name=~\"$alert_name\"}",
+          "expr": "last_over_time(lab_alert_raised{alert_name=~\"$alert_name\"}[24h]) unless on(alert_name, service, severity) (last_over_time(lab_alert_closed{alert_name=~\"$alert_name\"}[24h]) >= on(alert_name, service, severity) last_over_time(lab_alert_raised{alert_name=~\"$alert_name\"}[24h]))",
           "legendFormat": "{{alert_name}} ({{severity}}) - {{service}}",
           "refId": "A"
         }
@@ -326,7 +326,7 @@
           "type": "prometheus",
           "uid": "victoriametrics-${region}"
         },
-        "definition": "label_values(lab_alert_active, alert_name)",
+        "definition": "label_values(lab_alert_raised, alert_name)",
         "hide": 0,
         "includeAll": true,
         "allValue": ".*",
@@ -335,7 +335,7 @@
         "name": "alert_name",
         "query": {
           "qryType": 1,
-          "query": "label_values(lab_alert_active, alert_name)"
+          "query": "label_values(lab_alert_raised, alert_name)"
         },
         "refresh": 2,
         "regex": "",
