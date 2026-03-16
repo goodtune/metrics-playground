@@ -1,10 +1,10 @@
 # Metrics Playground
 
-A local, Docker Compose-based lab for evaluating event-based alerting with OpenTelemetry, VictoriaMetrics, VictoriaLogs, vmalert, Alertmanager, and Grafana.
+A local, Docker Compose-based lab for evaluating event-based alerting with OpenTelemetry, VictoriaMetrics, VictoriaLogs, vmalert, Alertmanager, Grafana, and an operator Alert Dashboard.
 
 ## Overview
 
-This lab models a three-region (APAC, EU, US) observability stack with **34 services**. Each region has 3 workloads, 3 local OTEL collectors, a vmagent, VictoriaMetrics, VictoriaLogs, vmalert, and Alertmanager. A single Grafana instance provides the global view.
+This lab models a three-region (APAC, EU, US) observability stack with **36 services**. Each region has 3 workloads, 3 local OTEL collectors, a vmagent, VictoriaMetrics, VictoriaLogs, vmalert, and Alertmanager. Global services include Grafana for dashboarding and an Alert Dashboard backed by PostgreSQL for operational alert management with real-time SSE updates via Datastar.
 
 One event produces two signals:
 
@@ -114,12 +114,27 @@ flowchart LR
     UVAL -->|active alerts| UAM
   end
 
-  AVMS -->|Prometheus datasource| G[Grafana Global View]
+  subgraph Global[Global Services]
+    G[Grafana]
+    DB[(PostgreSQL)]
+    AD[Alert Dashboard]
+    DB --- AD
+  end
+
+  AVMS -->|Prometheus datasource| G
   EVMS -->|Prometheus datasource| G
   UVMS -->|Prometheus datasource| G
   AVLS -->|VictoriaLogs datasource| G
   EVLS -->|VictoriaLogs datasource| G
   UVLS -->|VictoriaLogs datasource| G
+
+  AAM -->|webhook| AD
+  EAM -->|webhook| AD
+  UAM -->|webhook| AD
+  AD -->|fetch logs| AVLS
+  AD -->|fetch logs| EVLS
+  AD -->|fetch logs| UVLS
+  AD -->|SSE live updates| Browser((Operator Browser))
 ```
 
 ## Quick Start
@@ -156,6 +171,7 @@ curl -X POST http://localhost:8081/clear \
 | 8081–8083 | APAC workloads |
 | 8084–8086 | EU workloads |
 | 8087–8089 | US workloads |
+| 8090 | Alert Dashboard |
 | 9093 | APAC Alertmanager |
 | 9094 | EU Alertmanager |
 | 9095 | US Alertmanager |
