@@ -457,7 +457,7 @@ def _render_logs(alert_db_id):
     alert_id_val = a["alert_id"]
     # Full-text search by alert_id (a UUID, so virtually no false positives).
     # More reliable than stream-label filters for OTLP-ingested logs.
-    log_query = f'"{alert_id_val}"'
+    log_query = f'alert_id:{alert_id_val}'
 
     try:
         resp = http_requests.get(
