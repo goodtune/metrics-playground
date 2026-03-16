@@ -50,6 +50,12 @@ for _region in ("apac", "eu", "us"):
         _name = f"{_region}-app-{_i}"
         SERVICE_ENDPOINTS[_name] = f"http://{_name}:8080"
 
+CLOSE_RELAY_ENDPOINTS = {
+    "apac": os.environ.get("CLOSE_RELAY_APAC", "http://apac-close-relay:8080"),
+    "eu": os.environ.get("CLOSE_RELAY_EU", "http://eu-close-relay:8080"),
+    "us": os.environ.get("CLOSE_RELAY_US", "http://us-close-relay:8080"),
+}
+
 # ---------------------------------------------------------------------------
 # Database helpers
 # ---------------------------------------------------------------------------
@@ -618,16 +624,18 @@ def close_alert(alert_db_id):
             if alert["status"] == "resolved":
                 return _sse_response(_render_detail(alert_db_id))
 
-            # Best-effort push of synthetic clear to the originating workload
-            service = alert["service"]
-            alert_id_val = alert["alert_id"]
-            endpoint = SERVICE_ENDPOINTS.get(service)
-            if endpoint and alert_id_val:
+            # Emit synthetic close metric via regional Close Relay
+            region = alert["region"]
+            relay_url = CLOSE_RELAY_ENDPOINTS.get(region)
+            if relay_url:
                 try:
                     http_requests.post(
-                        f"{endpoint}/clear",
-                        json={"alert_id": alert_id_val,
-                              "reason": "operator-dashboard-close"},
+                        f"{relay_url}/close",
+                        json={
+                            "alert_name": alert["alert_name"],
+                            "service": alert["service"],
+                            "severity": alert["severity"],
+                        },
                         timeout=5,
                     )
                 except Exception:
