@@ -120,6 +120,11 @@ meter.create_observable_gauge(
     callbacks=[_observe_alerts],
 )
 
+raised_gauge = meter.create_gauge(
+    name="lab_alert_raised",
+    description="Unix timestamp of alert raise for event-based alerts",
+)
+
 # ---------------------------------------------------------------------------
 # Process metrics
 # ---------------------------------------------------------------------------
@@ -266,6 +271,15 @@ def _do_raise(alert_name, severity, reason, message, correlation_id):
         return active_alerts[alert_id]
 
     alert_gauge_values[key] = 1
+    raised_gauge.set(
+        time.time(),
+        attributes={
+            "alert_name": alert_name,
+            "service": SERVICE_NAME,
+            "severity": severity,
+            "region": REGION,
+        },
+    )
     http_request_counter.add(1, {"method": "POST", "endpoint": "/raise"})
 
     alert_record = {
