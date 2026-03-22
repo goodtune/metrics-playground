@@ -36,6 +36,7 @@ SERVICE_NAME = os.environ.get("SERVICE_NAME", "alert-simulator")
 COMPONENT = os.environ.get("COMPONENT", "workload")
 INSTANCE = os.environ.get("INSTANCE", "unknown")
 OTLP_ENDPOINT = os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4318")
+OTLP_METRICS_ENDPOINT = os.environ.get("OTEL_EXPORTER_OTLP_METRICS_ENDPOINT", OTLP_ENDPOINT)
 
 resource = Resource.create(
     {
@@ -49,7 +50,7 @@ resource = Resource.create(
 # ---------------------------------------------------------------------------
 # Metrics setup
 # ---------------------------------------------------------------------------
-metric_exporter = OTLPMetricExporter(endpoint=f"{OTLP_ENDPOINT}/v1/metrics")
+metric_exporter = OTLPMetricExporter(endpoint=f"{OTLP_METRICS_ENDPOINT}/v1/metrics")
 metric_reader = PeriodicExportingMetricReader(metric_exporter, export_interval_millis=1000)
 meter_provider = MeterProvider(resource=resource, metric_readers=[metric_reader])
 metrics.set_meter_provider(meter_provider)

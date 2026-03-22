@@ -12,10 +12,12 @@ services:
       - COMPONENT=workload
       - INSTANCE=apac-app-1
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://apac-otel-1:4318
+      - OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://apac-victoriametrics:8428/opentelemetry
     ports:
       - "8081:8080"
     depends_on:
       - apac-otel-1
+      - apac-victoriametrics
     networks:
       - lab-net
     restart: unless-stopped
@@ -33,10 +35,12 @@ services:
       - COMPONENT=workload
       - INSTANCE=apac-app-2
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://apac-otel-2:4318
+      - OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://apac-victoriametrics:8428/opentelemetry
     ports:
       - "8082:8080"
     depends_on:
       - apac-otel-2
+      - apac-victoriametrics
     networks:
       - lab-net
     restart: unless-stopped
@@ -54,10 +58,12 @@ services:
       - COMPONENT=workload
       - INSTANCE=apac-app-3
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://apac-otel-3:4318
+      - OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://apac-victoriametrics:8428/opentelemetry
     ports:
       - "8083:8080"
     depends_on:
       - apac-otel-3
+      - apac-victoriametrics
     networks:
       - lab-net
     restart: unless-stopped
@@ -244,10 +250,12 @@ services:
       - COMPONENT=workload
       - INSTANCE=eu-app-1
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://eu-otel-1:4318
+      - OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://eu-victoriametrics:8428/opentelemetry
     ports:
       - "8084:8080"
     depends_on:
       - eu-otel-1
+      - eu-victoriametrics
     networks:
       - lab-net
     restart: unless-stopped
@@ -265,10 +273,12 @@ services:
       - COMPONENT=workload
       - INSTANCE=eu-app-2
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://eu-otel-2:4318
+      - OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://eu-victoriametrics:8428/opentelemetry
     ports:
       - "8085:8080"
     depends_on:
       - eu-otel-2
+      - eu-victoriametrics
     networks:
       - lab-net
     restart: unless-stopped
@@ -286,10 +296,12 @@ services:
       - COMPONENT=workload
       - INSTANCE=eu-app-3
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://eu-otel-3:4318
+      - OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://eu-victoriametrics:8428/opentelemetry
     ports:
       - "8086:8080"
     depends_on:
       - eu-otel-3
+      - eu-victoriametrics
     networks:
       - lab-net
     restart: unless-stopped
@@ -476,10 +488,12 @@ services:
       - COMPONENT=workload
       - INSTANCE=us-app-1
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://us-otel-1:4318
+      - OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://us-victoriametrics:8428/opentelemetry
     ports:
       - "8087:8080"
     depends_on:
       - us-otel-1
+      - us-victoriametrics
     networks:
       - lab-net
     restart: unless-stopped
@@ -497,10 +511,12 @@ services:
       - COMPONENT=workload
       - INSTANCE=us-app-2
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://us-otel-2:4318
+      - OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://us-victoriametrics:8428/opentelemetry
     ports:
       - "8088:8080"
     depends_on:
       - us-otel-2
+      - us-victoriametrics
     networks:
       - lab-net
     restart: unless-stopped
@@ -518,10 +534,12 @@ services:
       - COMPONENT=workload
       - INSTANCE=us-app-3
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://us-otel-3:4318
+      - OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://us-victoriametrics:8428/opentelemetry
     ports:
       - "8089:8080"
     depends_on:
       - us-otel-3
+      - us-victoriametrics
     networks:
       - lab-net
     restart: unless-stopped
